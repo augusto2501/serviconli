@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             RegulatoryParameterSeeder::class,
             PaymentCalendarRuleSeeder::class,
             SolidarityFundScaleSeeder::class,
+            ColombianHoliday2026Seeder::class,
         ]);
     }
 }
