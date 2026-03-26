@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Documentación interna / contexto de negocio (no subir al remoto)
+/SKILL.md
+/REQUISITOS_FUNCIONALES_SERVICONLI.md
+/LISTADO_FUNCIONALIDADES_SERVICONLI.md
+/ESTRUCTURA_PROYECTO_SERVICONLI.md
+/DOCUMENTO_RECTOR_DEFINITIVO_V5_COMPLETO.md
+/cursor-serviconli-rules/
