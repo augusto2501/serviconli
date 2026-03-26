@@ -44,9 +44,10 @@ class AiProbeController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Anthropic respondió con error.',
-                'status' => $response->status(),
-                'error' => $response->json('error') ?? $response->body(),
-            ], 502);
+                'anthropic_status' => $response->status(),
+                'anthropic_error' => $response->json('error') ?? null,
+                'anthropic_body' => $response->body(),
+            ], 200);
         }
 
         $content = $response->json('content', []);
