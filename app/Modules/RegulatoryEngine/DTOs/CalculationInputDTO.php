@@ -11,5 +11,6 @@ final readonly class CalculationInputDTO
         public int $rawIbcPesos,
         public Periodo $cotizationPeriod,
         public string $contributorTypeCode,
+        public int $arlRiskClass = 1,
     ) {}
 }

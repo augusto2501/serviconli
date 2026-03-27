@@ -3,6 +3,7 @@
 namespace Tests\Feature\RegulatoryEngine;
 
 use App\Modules\RegulatoryEngine\Models\ColombianHoliday;
+use App\Modules\RegulatoryEngine\Models\PaymentDeadlineOverride;
 use App\Modules\RegulatoryEngine\Services\ColombianHolidayChecker;
 use App\Modules\RegulatoryEngine\Services\PaymentCalendarService;
 use Database\Seeders\PaymentCalendarRuleSeeder;
@@ -62,6 +63,27 @@ class PaymentCalendarServiceTest extends TestCase
         // Dígitos 00–07 → ordinal 2 → 2026-01-05
         $this->assertSame(
             '2026-01-05',
+            $svc->paymentDateForLastTwoDigitsInMonth(0, 2026, 1)->toDateString()
+        );
+    }
+
+    public function test_payment_date_uses_deadline_override_when_exists(): void
+    {
+        $this->seed(PaymentCalendarRuleSeeder::class);
+
+        PaymentDeadlineOverride::query()->create([
+            'period_year' => 2026,
+            'period_month' => 1,
+            'deadline_date' => '2026-01-22',
+            'mora_date' => '2026-01-23',
+            'reason' => 'Prórroga regulatoria de prueba',
+        ]);
+
+        $svc = $this->service();
+
+        // Aunque por dígitos 00 daría el 2.º hábil, override debe prevalecer.
+        $this->assertSame(
+            '2026-01-22',
             $svc->paymentDateForLastTwoDigitsInMonth(0, 2026, 1)->toDateString()
         );
     }

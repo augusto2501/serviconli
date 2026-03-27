@@ -27,6 +27,8 @@ class DatabaseSeeder extends Seeder
             PaymentCalendarRuleSeeder::class,
             SolidarityFundScaleSeeder::class,
             ColombianHoliday2026Seeder::class,
+            ContributorTypeSeeder::class,
+            ContributorTypeSubsystemSeeder::class,
         ]);
     }
 }

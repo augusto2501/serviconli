@@ -3,6 +3,7 @@
 namespace App\Modules\RegulatoryEngine\Services;
 
 use App\Modules\RegulatoryEngine\Models\PaymentCalendarRule;
+use App\Modules\RegulatoryEngine\Models\PaymentDeadlineOverride;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use InvalidArgumentException;
@@ -73,9 +74,22 @@ final class PaymentCalendarService
      */
     public function paymentDateForLastTwoDigitsInMonth(int $lastTwoDigits, int $year, int $month): Carbon
     {
+        $override = $this->deadlineOverrideForPeriod($year, $month);
+        if ($override !== null) {
+            return Carbon::parse($override->deadline_date)->startOfDay();
+        }
+
         $ordinal = $this->ordinalBusinessDayFromLastTwoDigits($lastTwoDigits);
 
         return $this->dateOfNthBusinessDayInMonth($year, $month, $ordinal);
+    }
+
+    private function deadlineOverrideForPeriod(int $year, int $month): ?PaymentDeadlineOverride
+    {
+        return PaymentDeadlineOverride::query()
+            ->where('period_year', $year)
+            ->where('period_month', $month)
+            ->first();
     }
 
     private function isBusinessDay(CarbonInterface $date): bool
