@@ -8,6 +8,7 @@ final readonly class ConsolidatedCalculationLineDTO
     public function __construct(
         public int $year,
         public int $month,
+        public int $rawIbcPesos,
         public int $daysLate,
         public string $paymentDeadlineDate,
         public CalculationResultDTO $result,

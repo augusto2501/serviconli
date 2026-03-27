@@ -86,6 +86,7 @@ final class ConsolidatedPILACalculationService
             $line = new ConsolidatedCalculationLineDTO(
                 year: $y,
                 month: $m,
+                rawIbcPesos: $row->rawIbcPesos,
                 daysLate: $daysLate,
                 paymentDeadlineDate: $deadline->toDateString(),
                 result: $result,

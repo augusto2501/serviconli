@@ -123,6 +123,7 @@ final class PILACalculationProbeController extends Controller
             $lines[] = [
                 'year' => $line->year,
                 'month' => $line->month,
+                'rawIbcPesos' => $line->rawIbcPesos,
                 'daysLate' => $line->daysLate,
                 'paymentDeadlineDate' => $line->paymentDeadlineDate,
                 'ibcRoundedPesos' => $line->result->ibcRoundedPesos,
