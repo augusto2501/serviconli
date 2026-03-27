@@ -18,10 +18,10 @@ final class RegulatoryParameterRepository
         return RegulatoryParameter::query()
             ->where('category', $category)
             ->where('key', $key)
-            ->where('valid_from', '<=', $date)
+            ->whereDate('valid_from', '<=', $date)
             ->where(function ($q) use ($date): void {
                 $q->whereNull('valid_until')
-                    ->orWhere('valid_until', '>=', $date);
+                    ->orWhereDate('valid_until', '>=', $date);
             })
             ->orderByDesc('valid_from')
             ->first();
