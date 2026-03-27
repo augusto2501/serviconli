@@ -3,6 +3,8 @@
 namespace App\Modules\PILALiquidation\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\PILALiquidation\Models\PilaLiquidation;
+use App\Modules\PILALiquidation\Services\PilaLiquidationStateService;
 use App\Modules\PILALiquidation\Services\StorePilaLiquidationService;
 use App\Modules\RegulatoryEngine\DTOs\PeriodIbcInput;
 use App\Modules\RegulatoryEngine\Exceptions\MissingRegulatoryParameterException;
@@ -31,8 +33,7 @@ final class PilaLiquidationController extends Controller
             'document_last_two_digits' => ['required', 'integer', 'min:0', 'max:99'],
             'target_type' => ['nullable', 'string', 'max:100', 'required_with:target_id'],
             'target_id' => ['nullable', 'integer', 'min:1', 'required_with:target_type'],
-            'subject_type' => ['nullable', 'string', 'max:100', 'required_with:subject_id'],
-            'subject_id' => ['nullable', 'integer', 'min:1', 'required_with:subject_type'],
+            'affiliate_id' => ['nullable', 'integer', 'exists:affiliates,id'],
         ]);
 
         $periods = [];
@@ -50,8 +51,7 @@ final class PilaLiquidationController extends Controller
         $paymentDate = Carbon::parse($validated['payment_date'])->toDateString();
         $targetType = $validated['target_type'] ?? null;
         $targetId = isset($validated['target_id']) ? (int) $validated['target_id'] : null;
-        $subjectType = $validated['subject_type'] ?? null;
-        $subjectId = isset($validated['subject_id']) ? (int) $validated['subject_id'] : null;
+        $affiliateId = isset($validated['affiliate_id']) ? (int) $validated['affiliate_id'] : null;
 
         try {
             $result = $consolidated->consolidate(
@@ -77,17 +77,98 @@ final class PilaLiquidationController extends Controller
             (int) $validated['document_last_two_digits'],
             $targetType,
             $targetId,
-            $subjectType,
-            $subjectId,
+            $affiliateId,
         );
 
-        return response()->json([
-            'id' => $liquidation->id,
-            'publicId' => $liquidation->public_id,
-            'status' => $liquidation->status->value,
-            'totalSocialSecurityPesos' => $liquidation->total_social_security_pesos,
-            'subsystemTotalsPesos' => $liquidation->subsystem_totals_pesos,
-            'lineCount' => $liquidation->lines->count(),
-        ], 201);
+        return response()->json($this->liquidationToArray($liquidation->load('lines', 'affiliate')), 201);
+    }
+
+    public function show(string $publicId): JsonResponse
+    {
+        $liquidation = PilaLiquidation::query()
+            ->where('public_id', $publicId)
+            ->with(['lines', 'affiliate'])
+            ->first();
+
+        if ($liquidation === null) {
+            return response()->json(['message' => 'Liquidación no encontrada.'], 404);
+        }
+
+        return response()->json($this->liquidationToArray($liquidation));
+    }
+
+    public function confirm(string $publicId, PilaLiquidationStateService $state): JsonResponse
+    {
+        $liquidation = PilaLiquidation::query()->where('public_id', $publicId)->first();
+
+        if ($liquidation === null) {
+            return response()->json(['message' => 'Liquidación no encontrada.'], 404);
+        }
+
+        try {
+            $updated = $state->confirm($liquidation);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($this->liquidationToArray($updated));
+    }
+
+    public function cancel(string $publicId, PilaLiquidationStateService $state): JsonResponse
+    {
+        $liquidation = PilaLiquidation::query()->where('public_id', $publicId)->first();
+
+        if ($liquidation === null) {
+            return response()->json(['message' => 'Liquidación no encontrada.'], 404);
+        }
+
+        try {
+            $updated = $state->cancel($liquidation);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($this->liquidationToArray($updated));
+    }
+
+    /** @return array<string, mixed> */
+    private function liquidationToArray(PilaLiquidation $l): array
+    {
+        $l->loadMissing('lines', 'affiliate');
+
+        return [
+            'id' => $l->id,
+            'publicId' => $l->public_id,
+            'status' => $l->status->value,
+            'contributorTypeCode' => $l->contributor_type_code,
+            'arlRiskClass' => $l->arl_risk_class,
+            'paymentDate' => $l->payment_date->toDateString(),
+            'documentLastTwoDigits' => $l->document_last_two_digits,
+            'targetType' => $l->target_type,
+            'targetId' => $l->target_id,
+            'affiliate' => $l->affiliate !== null ? [
+                'id' => $l->affiliate->id,
+                'documentNumber' => $l->affiliate->document_number,
+                'firstName' => $l->affiliate->first_name,
+                'lastName' => $l->affiliate->last_name,
+            ] : null,
+            'totalSocialSecurityPesos' => $l->total_social_security_pesos,
+            'subsystemTotalsPesos' => $l->subsystem_totals_pesos,
+            'lines' => $l->lines->map(static function ($line): array {
+                return [
+                    'lineNumber' => $line->line_number,
+                    'periodYear' => $line->period_year,
+                    'periodMonth' => $line->period_month,
+                    'rawIbcPesos' => $line->raw_ibc_pesos,
+                    'ibcRoundedPesos' => $line->ibc_rounded_pesos,
+                    'daysLate' => $line->days_late,
+                    'paymentDeadlineDate' => $line->payment_deadline_date->toDateString(),
+                    'subsystemAmountsPesos' => $line->subsystem_amounts_pesos,
+                    'totalSocialSecurityPesos' => $line->total_social_security_pesos,
+                ];
+            })->values()->all(),
+            'createdAt' => $l->created_at?->toIso8601String(),
+            'updatedAt' => $l->updated_at?->toIso8601String(),
+        ];
     }
 }

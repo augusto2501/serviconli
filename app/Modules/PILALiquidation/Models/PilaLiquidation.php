@@ -2,8 +2,10 @@
 
 namespace App\Modules\PILALiquidation\Models;
 
+use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\PILALiquidation\Enums\PilaLiquidationStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PilaLiquidation extends Model
@@ -19,8 +21,7 @@ class PilaLiquidation extends Model
         'document_last_two_digits',
         'target_type',
         'target_id',
-        'subject_type',
-        'subject_id',
+        'affiliate_id',
         'total_social_security_pesos',
         'subsystem_totals_pesos',
     ];
@@ -32,6 +33,12 @@ class PilaLiquidation extends Model
             'subsystem_totals_pesos' => 'array',
             'status' => PilaLiquidationStatus::class,
         ];
+    }
+
+    /** @return BelongsTo<Affiliate, $this> */
+    public function affiliate(): BelongsTo
+    {
+        return $this->belongsTo(Affiliate::class);
     }
 
     /** @return HasMany<PilaLiquidationLine, $this> */

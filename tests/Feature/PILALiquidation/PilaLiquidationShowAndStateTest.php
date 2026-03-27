@@ -4,31 +4,36 @@ namespace Tests\Feature\PILALiquidation;
 
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\PILALiquidation\Models\PilaLiquidation;
-use App\Modules\PILALiquidation\Models\PilaLiquidationLine;
 use App\Modules\RegulatoryEngine\Models\RegulatoryParameter;
 use Database\Seeders\PaymentCalendarRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class PilaLiquidationStoreTest extends TestCase
+class PilaLiquidationShowAndStateTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_store_persists_liquidation_and_lines(): void
+    public function test_show_returns_404_for_unknown_public_id(): void
+    {
+        $response = $this->getJson('/api/pila/liquidations/01ARBITRARYULID999999999999');
+
+        $response->assertNotFound();
+    }
+
+    public function test_show_confirm_and_cancel_flow(): void
     {
         $this->seed(PaymentCalendarRuleSeeder::class);
         $this->seedDefaultRates();
 
         $affiliate = Affiliate::query()->create([
-            'document_number' => '1234567890',
-            'first_name' => 'Ana',
-            'last_name' => 'Pérez',
+            'document_number' => '9876543210',
+            'first_name' => 'Luis',
+            'last_name' => 'Gómez',
         ]);
 
-        $response = $this->postJson('/api/pila/liquidations', [
+        $create = $this->postJson('/api/pila/liquidations', [
             'periods' => [
-                ['year' => 2026, 'month' => 1, 'raw_ibc_pesos' => 1_750_905],
-                ['year' => 2026, 'month' => 2, 'raw_ibc_pesos' => 1_750_905],
+                ['year' => 2026, 'month' => 1, 'raw_ibc_pesos' => 1_000_000],
             ],
             'contributor_type_code' => '01',
             'arl_risk_class' => 1,
@@ -37,33 +42,27 @@ class PilaLiquidationStoreTest extends TestCase
             'affiliate_id' => $affiliate->id,
         ]);
 
-        $response->assertCreated()
-            ->assertJsonStructure([
-                'id',
-                'publicId',
-                'status',
-                'totalSocialSecurityPesos',
-                'subsystemTotalsPesos',
-                'lines',
-                'affiliate' => ['id', 'documentNumber', 'firstName', 'lastName'],
-            ]);
+        $create->assertCreated();
+        $publicId = $create->json('publicId');
+        $this->assertNotEmpty($publicId);
 
-        $this->assertCount(2, $response->json('lines'));
+        $show = $this->getJson('/api/pila/liquidations/'.$publicId);
+        $show->assertOk()
+            ->assertJsonPath('status', 'draft')
+            ->assertJsonPath('affiliate.documentNumber', '9876543210');
 
-        $this->assertDatabaseCount('pila_liquidations', 1);
-        $this->assertDatabaseCount('pila_liquidation_lines', 2);
+        $confirm = $this->postJson('/api/pila/liquidations/'.$publicId.'/confirm');
+        $confirm->assertOk()->assertJsonPath('status', 'confirmed');
 
-        $liq = PilaLiquidation::query()->first();
+        $cancel = $this->postJson('/api/pila/liquidations/'.$publicId.'/cancel');
+        $cancel->assertOk()->assertJsonPath('status', 'cancelled');
+
+        $secondConfirm = $this->postJson('/api/pila/liquidations/'.$publicId.'/confirm');
+        $secondConfirm->assertStatus(422);
+
+        $liq = PilaLiquidation::query()->where('public_id', $publicId)->first();
         $this->assertNotNull($liq);
-        $this->assertSame('draft', $liq->status->value);
-        $this->assertSame($affiliate->id, $liq->affiliate_id);
-
-        $lines = PilaLiquidationLine::query()->orderBy('line_number')->get();
-        $this->assertCount(2, $lines);
-        $this->assertSame(1_750_905, $lines[0]->raw_ibc_pesos);
-        $this->assertSame(1_751_000, $lines[0]->ibc_rounded_pesos);
-        $this->assertSame(2026, $lines[0]->period_year);
-        $this->assertSame(1, $lines[0]->period_month);
+        $this->assertSame('cancelled', $liq->status->value);
     }
 
     private function seedDefaultRates(): void

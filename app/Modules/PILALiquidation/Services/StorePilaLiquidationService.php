@@ -19,8 +19,7 @@ final class StorePilaLiquidationService
         int $documentLastTwoDigits,
         ?string $targetType = null,
         ?int $targetId = null,
-        ?string $subjectType = null,
-        ?int $subjectId = null,
+        ?int $affiliateId = null,
     ): PilaLiquidation {
         return DB::transaction(function () use (
             $result,
@@ -30,8 +29,7 @@ final class StorePilaLiquidationService
             $documentLastTwoDigits,
             $targetType,
             $targetId,
-            $subjectType,
-            $subjectId,
+            $affiliateId,
         ): PilaLiquidation {
             $liquidation = PilaLiquidation::query()->create([
                 'public_id' => (string) Str::ulid(),
@@ -42,8 +40,7 @@ final class StorePilaLiquidationService
                 'document_last_two_digits' => $documentLastTwoDigits,
                 'target_type' => $targetType,
                 'target_id' => $targetId,
-                'subject_type' => $subjectType,
-                'subject_id' => $subjectId,
+                'affiliate_id' => $affiliateId,
                 'total_social_security_pesos' => $result->totalSocialSecurityPesos,
                 'subsystem_totals_pesos' => $result->subsystemTotalsPesos,
             ]);
