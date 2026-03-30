@@ -92,8 +92,52 @@ class SampleAffiliatesSeeder extends Seeder
             ]
         );
 
+        $personTitular2 = Person::query()->firstOrCreate(
+            ['document_number' => '1029384756'],
+            [
+                'document_type' => 'CC',
+                'first_name' => 'Laura',
+                'second_name' => 'Marcela',
+                'first_surname' => 'Gómez',
+                'second_surname' => 'Ruiz',
+                'birth_date' => '1990-07-08',
+                'gender' => 'F',
+                'address' => 'Carrera 15 # 98-10',
+                'neighborhood' => 'Chicó',
+                'city_name' => 'Bogotá',
+                'department_name' => 'Cundinamarca',
+                'phone1' => '3115557788',
+                'cellphone' => '3115557788',
+                'email' => 'laura.gomez@example.com',
+            ]
+        );
+
+        $affiliate2 = Affiliate::query()->firstOrCreate(
+            ['person_id' => $personTitular2->id],
+            [
+                'client_type' => AffiliateClientType::INDEPENDIENTE,
+                'status_id' => $statusId,
+                'mora_status' => 'AL_DIA',
+            ]
+        );
+
+        if (! SocialSecurityProfile::query()->where('affiliate_id', $affiliate2->id)->exists()) {
+            SocialSecurityProfile::query()->create([
+                'affiliate_id' => $affiliate2->id,
+                'eps_entity_id' => $eps->id,
+                'valid_from' => now()->toDateString(),
+                'valid_until' => null,
+                'ibc' => 2_200_000,
+            ]);
+        }
+
         $this->command?->info(sprintf(
-            'SampleAffiliatesSeeder: titular person_id=%d → afl_affiliates.id=%d; beneficiario en afl_beneficiaries (documento TI 10123456789).',
+            'SampleAffiliatesSeeder: 2 afiliados en afl_affiliates (ids: %d, %d) y 1 beneficiario en afl_beneficiaries.',
+            $affiliate->id,
+            $affiliate2->id
+        ));
+        $this->command?->info(sprintf(
+            'Detalle: titular principal person_id=%d; beneficiario TI 10123456789 asociado a affiliate_id=%d.',
             $personTitular->id,
             $affiliate->id
         ));

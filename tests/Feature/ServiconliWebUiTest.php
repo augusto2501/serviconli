@@ -13,16 +13,16 @@ class ServiconliWebUiTest extends TestCase
 
     public function test_login_page_returns_ok(): void
     {
-        $this->get('/login')->assertOk()->assertSee('login-form', false);
+        $this->get('/login')->assertOk()->assertSee('serviconli-vue-root', false);
     }
 
     public function test_mis_afiliados_page_returns_ok(): void
     {
-        $this->get('/mis-afiliados')->assertOk()->assertSee('affiliates-tbody', false);
+        $this->get('/mis-afiliados')->assertOk()->assertSee('serviconli-vue-root', false);
     }
 
     public function test_ficha_page_returns_ok(): void
     {
-        $this->get('/afiliados/1/ficha')->assertOk()->assertSee('ficha-root', false);
+        $this->get('/afiliados/1/ficha')->assertOk()->assertSee('data-affiliate-id="1"', false);
     }
 }
