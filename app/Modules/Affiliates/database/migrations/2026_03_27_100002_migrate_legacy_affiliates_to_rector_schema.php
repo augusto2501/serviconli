@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const PILA_AFFILIATE_FK = 'pila_liquidations_affiliate_id_foreign';
+
     public function up(): void
     {
         if (! Schema::hasTable('affiliates')) {
@@ -17,9 +19,7 @@ return new class extends Migration
 
         DB::transaction(function (): void {
             if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
-                Schema::table('pila_liquidations', function (Blueprint $table) {
-                    $table->dropForeign(['affiliate_id']);
-                });
+                $this->dropPilaAffiliateForeignIfExists();
             }
 
             $rows = DB::table('affiliates')->orderBy('id')->get();
@@ -70,9 +70,7 @@ return new class extends Migration
         });
 
         if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
-            Schema::table('pila_liquidations', function (Blueprint $table) {
-                $table->dropForeign(['affiliate_id']);
-            });
+            $this->dropPilaAffiliateForeignIfExists();
         }
 
         DB::transaction(function (): void {
@@ -98,5 +96,43 @@ return new class extends Migration
                 $table->foreign('affiliate_id')->references('id')->on('affiliates')->nullOnDelete();
             });
         }
+    }
+
+    private function dropPilaAffiliateForeignIfExists(): void
+    {
+        $connection = DB::connection();
+        if ($connection->getDriverName() !== 'mysql') {
+            Schema::table('pila_liquidations', function (Blueprint $table) {
+                $table->dropForeign(['affiliate_id']);
+            });
+
+            return;
+        }
+
+        // En cloud/prod puede existir la columna sin la FK esperada por nombre.
+        if (! $this->foreignKeyExists('pila_liquidations', self::PILA_AFFILIATE_FK)) {
+            return;
+        }
+
+        Schema::table('pila_liquidations', function (Blueprint $table) {
+            $table->dropForeign(self::PILA_AFFILIATE_FK);
+        });
+    }
+
+    private function foreignKeyExists(string $table, string $constraintName): bool
+    {
+        $connection = DB::connection();
+        if ($connection->getDriverName() !== 'mysql') {
+            return true;
+        }
+
+        $dbName = $connection->getDatabaseName();
+
+        return DB::table('information_schema.TABLE_CONSTRAINTS')
+            ->where('CONSTRAINT_SCHEMA', $dbName)
+            ->where('TABLE_NAME', $table)
+            ->where('CONSTRAINT_NAME', $constraintName)
+            ->where('CONSTRAINT_TYPE', 'FOREIGN KEY')
+            ->exists();
     }
 };
