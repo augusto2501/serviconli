@@ -9,7 +9,7 @@ _Actualizado con el avance de implementación en código (marzo 2026)._
 
 | RF | Estado | Nota breve |
 |----|--------|-------------|
-| RF-001 | En curso | Wizard 6 pasos: backend parcial (API afiliado); sin flujo guiado completo |
+| RF-001 | Hecho (parcial) | Wizard backend 6 pasos: `POST /api/enrollment/step-1..5` + `POST /api/enrollment/step-6/confirm` con persistencia en `wf_enrollment_processes`, validación y bloqueo de salto de pasos |
 | RF-002 | Hecho | `AffiliateClientType` + columna `client_type` |
 | RF-003–RF-004 | En curso | Catálogo cotizante en motor; subtipos en esquema `afl_affiliates.subtipo` |
 | RF-005–RF-007 | En curso | `core_people` alineado; validación API mínima; faltan reglas completas paso 2/7 |
