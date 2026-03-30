@@ -21,7 +21,13 @@ final class ApiExceptionRenderer
 {
     public static function isApiRequest(Request $request): bool
     {
-        return $request->is('api/*') || $request->expectsJson();
+        if ($request->expectsJson()) {
+            return true;
+        }
+
+        $path = ltrim($request->path(), '/');
+
+        return $path === 'api' || str_starts_with($path, 'api/');
     }
 
     public static function render(Request $request, Throwable $e): ?JsonResponse
@@ -68,6 +74,21 @@ final class ApiExceptionRenderer
                 'message' => $e->getMessage() ?: 'No autorizado.',
                 'code' => 'AUTHORIZATION',
             ], $status);
+        }
+
+        if ($e instanceof InvalidArgumentException) {
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'Route [') && str_contains($msg, '] not defined')) {
+                return response()->json([
+                    'message' => 'Sesión no iniciada o ruta de login no configurada. Para la API use encabezado Authorization: Bearer o Accept: application/json en /api/*.',
+                    'code' => 'AUTHENTICATION',
+                ], SymfonyResponse::HTTP_UNAUTHORIZED);
+            }
+
+            return response()->json([
+                'message' => $msg,
+                'code' => 'INVALID_ARGUMENT',
+            ], SymfonyResponse::HTTP_BAD_REQUEST);
         }
 
         if ($e instanceof NotFoundHttpException) {

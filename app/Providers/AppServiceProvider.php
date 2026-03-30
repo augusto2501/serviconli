@@ -15,6 +15,7 @@ use App\Policies\EmployerPolicy;
 use App\Policies\EnrollmentProcessPolicy;
 use App\Policies\PilaLiquidationPolicy;
 use App\Policies\ReentryProcessPolicy;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -41,6 +42,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Authenticate::redirectUsing(static fn (): string => '/');
+
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });
