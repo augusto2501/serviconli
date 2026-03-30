@@ -17,42 +17,40 @@ return new class extends Migration
             return;
         }
 
-        DB::transaction(function (): void {
-            if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
-                $this->dropPilaAffiliateForeignIfExists();
-            }
+        if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
+            $this->dropPilaAffiliateForeignIfExists();
+        }
 
-            $rows = DB::table('affiliates')->orderBy('id')->get();
+        $rows = DB::table('affiliates')->orderBy('id')->get();
 
-            foreach ($rows as $row) {
-                $personId = DB::table('core_people')->insertGetId([
-                    'document_number' => $row->document_number,
-                    'first_name' => $row->first_name,
-                    'first_surname' => $row->last_name,
-                    'created_at' => $row->created_at ?? now(),
-                    'updated_at' => $row->updated_at ?? now(),
-                ]);
+        foreach ($rows as $row) {
+            $personId = DB::table('core_people')->insertGetId([
+                'document_number' => $row->document_number,
+                'first_name' => $row->first_name,
+                'first_surname' => $row->last_name,
+                'created_at' => $row->created_at ?? now(),
+                'updated_at' => $row->updated_at ?? now(),
+            ]);
 
-                DB::table('afl_affiliates')->insert([
-                    'id' => $row->id,
-                    'person_id' => $personId,
-                    'client_type' => 'SERVICONLI',
-                    'status_id' => null,
-                    'has_discount' => false,
-                    'is_type_51' => false,
-                    'created_at' => $row->created_at ?? now(),
-                    'updated_at' => $row->updated_at ?? now(),
-                ]);
-            }
+            DB::table('afl_affiliates')->insert([
+                'id' => $row->id,
+                'person_id' => $personId,
+                'client_type' => 'SERVICONLI',
+                'status_id' => null,
+                'has_discount' => false,
+                'is_type_51' => false,
+                'created_at' => $row->created_at ?? now(),
+                'updated_at' => $row->updated_at ?? now(),
+            ]);
+        }
 
-            Schema::drop('affiliates');
+        Schema::drop('affiliates');
 
-            if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
-                Schema::table('pila_liquidations', function (Blueprint $table) {
-                    $table->foreign('affiliate_id')->references('id')->on('afl_affiliates')->nullOnDelete();
-                });
-            }
-        });
+        if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
+            Schema::table('pila_liquidations', function (Blueprint $table) {
+                $table->foreign('affiliate_id')->references('id')->on('afl_affiliates')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
@@ -73,23 +71,21 @@ return new class extends Migration
             $this->dropPilaAffiliateForeignIfExists();
         }
 
-        DB::transaction(function (): void {
-            $affiliates = DB::table('afl_affiliates')->orderBy('id')->get();
-            foreach ($affiliates as $a) {
-                $person = DB::table('core_people')->where('id', $a->person_id)->first();
-                if ($person === null) {
-                    continue;
-                }
-                DB::table('affiliates')->insert([
-                    'id' => $a->id,
-                    'document_number' => $person->document_number,
-                    'first_name' => $person->first_name,
-                    'last_name' => $person->first_surname,
-                    'created_at' => $a->created_at,
-                    'updated_at' => $a->updated_at,
-                ]);
+        $affiliates = DB::table('afl_affiliates')->orderBy('id')->get();
+        foreach ($affiliates as $a) {
+            $person = DB::table('core_people')->where('id', $a->person_id)->first();
+            if ($person === null) {
+                continue;
             }
-        });
+            DB::table('affiliates')->insert([
+                'id' => $a->id,
+                'document_number' => $person->document_number,
+                'first_name' => $person->first_name,
+                'last_name' => $person->first_surname,
+                'created_at' => $a->created_at,
+                'updated_at' => $a->updated_at,
+            ]);
+        }
 
         if (Schema::hasTable('pila_liquidations') && Schema::hasColumn('pila_liquidations', 'affiliate_id')) {
             Schema::table('pila_liquidations', function (Blueprint $table) {
