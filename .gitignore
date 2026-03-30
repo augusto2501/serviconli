@@ -13,7 +13,8 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
+# public/build se versiona para que producción (p. ej. Laravel Cloud sin npm en build) tenga manifest.json.
+# Tras cambiar CSS/JS: ejecutar npm run build y hacer commit de public/build/.
 /public/hot
 /public/storage
 /storage/*.key

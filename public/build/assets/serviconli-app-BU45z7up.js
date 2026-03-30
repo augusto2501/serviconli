@@ -1,0 +1,34 @@
+var e=`serviconli_api_token`;function t(){return sessionStorage.getItem(e)}function n(t){sessionStorage.setItem(e,t)}function r(){sessionStorage.removeItem(e)}function i(){return t()?!0:(window.location.href=`/login`,!1)}async function a(e,n={}){let i=e.startsWith(`http`)?e:`/api${e.startsWith(`/`)?e:`/${e}`}`,a={Accept:`application/json`,...n.headers},o=t();o&&(a.Authorization=`Bearer ${o}`);let s=await fetch(i,{...n,headers:a});if(s.status===401)throw r(),window.location.href=`/login`,Error(`No autenticado`);return s}function o(){if(t()){window.location.replace(`/mis-afiliados`);return}let e=document.getElementById(`login-form`),r=document.getElementById(`login-error`);e&&e.addEventListener(`submit`,async t=>{t.preventDefault(),r.textContent=``,r.classList.add(`hidden`);let i=new FormData(e),a={email:i.get(`email`),password:i.get(`password`)};try{let e=await fetch(`/api/login`,{method:`POST`,headers:{Accept:`application/json`,"Content-Type":`application/json`},body:JSON.stringify(a)}),t=await e.json().catch(()=>({}));if(!e.ok){r.textContent=t.message||t.errors?.email?.[0]||`Credenciales incorrectas.`,r.classList.remove(`hidden`);return}t.token&&n(t.token),window.location.href=`/mis-afiliados`}catch{r.textContent=`No se pudo conectar. Intente de nuevo.`,r.classList.remove(`hidden`)}})}function s(){if(!i())return;let e=document.getElementById(`affiliates-tbody`),n=document.getElementById(`affiliates-meta`),o=document.getElementById(`filter-q`),s=document.getElementById(`btn-search`),l=document.getElementById(`btn-export-csv`),u=document.getElementById(`btn-export-xlsx`),d=document.getElementById(`btn-logout`);async function f(t=1){let r=o?.value?.trim()||``,i=new URLSearchParams({page:String(t),per_page:`15`});r&&i.set(`q`,r),e.innerHTML=`<tr><td colspan="6" class="px-4 py-8 text-center text-stone-500">Cargando…</td></tr>`;try{let t=await(await a(`/affiliates?${i.toString()}`)).json(),r=t.data||[];if(n.textContent=`Total: ${t.meta?.total??0} · Página ${t.meta?.currentPage??1} de ${t.meta?.lastPage??1}`,r.length===0){e.innerHTML=`<tr><td colspan="6" class="px-4 py-8 text-center text-stone-500">Sin resultados.</td></tr>`;return}e.innerHTML=r.map(e=>`
+                <tr class="border-t border-stone-200/80 hover:bg-white/60">
+                    <td class="px-4 py-3 font-mono text-sm">${c(e.documentNumber??`—`)}</td>
+                    <td class="px-4 py-3">${c((e.fullName??[e.firstName,e.lastName].filter(Boolean).join(` `))||`—`)}</td>
+                    <td class="px-4 py-3 text-sm">${c(e.clientType??`—`)}</td>
+                    <td class="px-4 py-3 text-sm">${c(e.moraStatus??`—`)}</td>
+                    <td class="px-4 py-3 text-sm max-w-[10rem] truncate" title="${c(e.epsName??``)}">${c(e.epsName??`—`)}</td>
+                    <td class="px-4 py-3 text-right">
+                        <a class="text-teal-800 font-medium hover:underline" href="/afiliados/${e.id}/ficha">Ficha 360°</a>
+                    </td>
+                </tr>`).join(``)}catch{e.innerHTML=`<tr><td colspan="6" class="px-4 py-8 text-center text-red-700">Error al cargar.</td></tr>`}}s?.addEventListener(`click`,()=>f(1)),o?.addEventListener(`keydown`,e=>{e.key===`Enter`&&(e.preventDefault(),f(1))});async function p(e){let n=t();if(!n)return;let i=await fetch(`/api/affiliates/export?format=${encodeURIComponent(e)}`,{headers:{Authorization:`Bearer ${n}`,Accept:`*/*`}});if(i.status===401){r(),window.location.href=`/login`;return}if(!i.ok){alert(`No se pudo exportar.`);return}let a=await i.blob(),o=i.headers.get(`Content-Disposition`),s=`export-afiliados.${e===`xlsx`?`xlsx`:`csv`}`;if(o&&o.includes(`filename=`)){let e=o.match(/filename="?([^";]+)"?/);e&&(s=e[1])}let c=URL.createObjectURL(a),l=document.createElement(`a`);l.href=c,l.download=s,l.click(),URL.revokeObjectURL(c)}l?.addEventListener(`click`,()=>p(`csv`)),u?.addEventListener(`click`,()=>p(`xlsx`)),d?.addEventListener(`click`,async()=>{let e=t();e&&await fetch(`/api/logout`,{method:`POST`,headers:{Authorization:`Bearer ${e}`,Accept:`application/json`}}).catch(()=>{}),r(),window.location.href=`/login`}),f(1)}function c(e){let t=document.createElement(`div`);return t.textContent=e,t.innerHTML}function l(){if(!i())return;let e=document.getElementById(`ficha-root`),t=e?.dataset?.affiliateId,n=document.getElementById(`quick-actions`);!t||!e||(n?.querySelectorAll(`[data-quick-action]`).forEach(e=>{e.addEventListener(`click`,()=>{alert(`Próximamente: este flujo se conectará al módulo correspondiente (RF-016).`)})}),(async()=>{e.innerHTML=`<p class="text-stone-500 py-6">Cargando ficha…</p>`;try{e.innerHTML=u(await(await a(`/affiliates/${t}/ficha-360`)).json())}catch{e.innerHTML=`<p class="text-red-700 py-6">No se pudo cargar la ficha.</p>`}})())}function u(e){let t=e.person||{},n=e.affiliate||{},r=(e.notes?.recent||[]).length,i=e.counts?.beneficiaries??0;return`
+        <div class="grid gap-6 md:grid-cols-2">
+            <section class="rounded-xl border border-stone-200/90 bg-white/80 p-5 shadow-sm">
+                <h2 class="font-serif text-lg font-bold text-stone-900 mb-3">Persona</h2>
+                <dl class="space-y-2 text-sm">
+                    <div><dt class="text-stone-500 inline">Documento</dt> <dd class="inline font-mono">${c(String(t.documentNumber??`—`))}</dd></div>
+                    <div><dt class="text-stone-500 inline">Nombre</dt> <dd class="inline">${c([t.firstName,t.secondName,t.firstSurname,t.secondSurname].filter(Boolean).join(` `)||`—`)}</dd></div>
+                </dl>
+            </section>
+            <section class="rounded-xl border border-stone-200/90 bg-white/80 p-5 shadow-sm">
+                <h2 class="font-serif text-lg font-bold text-stone-900 mb-3">Afiliado</h2>
+                <dl class="space-y-2 text-sm">
+                    <div><dt class="text-stone-500 inline">Estado</dt> <dd class="inline">${c(String(n.statusName??n.statusCode??`—`))}</dd></div>
+                    <div><dt class="text-stone-500 inline">Mora</dt> <dd class="inline">${c(String(n.moraStatus??`—`))}</dd></div>
+                    <div><dt class="text-stone-500 inline">Tipo cliente</dt> <dd class="inline">${c(String(n.clientType??`—`))}</dd></div>
+                </dl>
+            </section>
+        </div>
+        <section class="rounded-xl border border-stone-200/90 bg-white/80 p-5 shadow-sm mt-6">
+            <h2 class="font-serif text-lg font-bold text-stone-900 mb-2">Resumen</h2>
+            <p class="text-sm text-stone-600">Beneficiarios: <strong>${i}</strong> · Notas recientes: <strong>${r}</strong></p>
+            <p class="text-sm text-stone-500 mt-2">Liquidaciones PILA, facturas y portales: ver JSON en API para detalle completo.</p>
+        </section>
+    `}document.addEventListener(`DOMContentLoaded`,()=>{let e=document.body.dataset.page;e===`login`&&o(),e===`mis-afiliados`&&s(),e===`ficha`&&l()});
