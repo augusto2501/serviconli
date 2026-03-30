@@ -20,6 +20,13 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Sin manifest/hot las pruebas fallarían; en CI no suele ejecutarse npm run build.
+        if (app()->environment('testing')
+            && ! is_file(public_path('build/manifest.json'))
+            && ! is_file(public_path('hot'))) {
+            $this->withoutVite();
+        }
+
         if ($this->shouldAuthenticateApi()) {
             Sanctum::actingAs(User::factory()->create());
         }
