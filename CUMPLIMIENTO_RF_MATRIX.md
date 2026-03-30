@@ -12,7 +12,7 @@ _Actualizado con el avance de implementación en código (marzo 2026)._
 | RF-001 | Hecho (parcial) | Wizard backend 6 pasos: `POST /api/enrollment/step-1..5` + `POST /api/enrollment/step-6/confirm` con persistencia en `wf_enrollment_processes`, validación y bloqueo de salto de pasos |
 | RF-002 | Hecho | `AffiliateClientType` + columna `client_type` |
 | RF-003–RF-004 | En curso | Catálogo cotizante en motor; subtipos en esquema `afl_affiliates.subtipo` |
-| RF-005–RF-007 | En curso | `core_people` alineado; validación API mínima; faltan reglas completas paso 2/7 |
+| RF-005–RF-007 | Hecho (parcial) | Paso 2: tipos documento RF-005 (`Rule::in`), obligatorios RF-006 (incl. al menos un teléfono vía `required_without_all`), `is_foreigner` RF-007; paso 1 `is_type_51` RF-007. Tests: `EnrollmentWizardApiTest` (incl. `test_step2_*`). **Flujo vertical API:** `tests/Feature/E2E/ServiconliVerticalFlowTest` (login → afiliados → ficha-360 → notas → export CSV) |
 | RF-008 | Hecho (parcial) | `RadicadoNumberGenerator` + `radicado_yearly_sequences`; formato `RAD-{YYYY}-{NNNNNN}`; radicado en `wf_enrollment_processes.radicado_number` al confirmar |
 | RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user agent y `accepted_at` |
 | RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService` como punto de enganche; recibo/PDF/comisión/tercero/WhatsApp pendientes |

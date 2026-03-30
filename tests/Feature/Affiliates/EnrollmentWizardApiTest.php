@@ -264,6 +264,73 @@ class EnrollmentWizardApiTest extends TestCase
         $response->assertStatus(422);
     }
 
+    /** RF-005 — tipo de documento fuera del catálogo. */
+    public function test_step2_rejects_unknown_document_type(): void
+    {
+        $step1 = $this->postJson('/api/enrollment/step-1', [
+            'client_type' => 'SERVICONLI',
+            'contributor_type_code' => '01',
+        ]);
+        $processId = (int) $step1->json('processId');
+
+        $this->postJson('/api/enrollment/step-2', [
+            'process_id' => $processId,
+            'document_type' => 'XX',
+            'document_number' => '1',
+            'first_name' => 'A',
+            'first_surname' => 'B',
+            'gender' => 'M',
+            'address' => 'Calle',
+            'cellphone' => '3001112233',
+        ])->assertStatus(422);
+    }
+
+    /** RF-006 — al menos un teléfono (ninguno enviado). */
+    public function test_step2_rejects_when_all_contact_phones_missing(): void
+    {
+        $step1 = $this->postJson('/api/enrollment/step-1', [
+            'client_type' => 'SERVICONLI',
+            'contributor_type_code' => '01',
+        ]);
+        $processId = (int) $step1->json('processId');
+
+        $this->postJson('/api/enrollment/step-2', [
+            'process_id' => $processId,
+            'document_type' => 'CC',
+            'document_number' => '44332211',
+            'first_name' => 'María',
+            'first_surname' => 'López',
+            'gender' => 'F',
+            'address' => 'Carrera 10',
+        ])->assertStatus(422);
+    }
+
+    /** RF-007 — is_foreigner puede persistirse en paso 2. */
+    public function test_step2_accepts_is_foreigner(): void
+    {
+        $step1 = $this->postJson('/api/enrollment/step-1', [
+            'client_type' => 'SERVICONLI',
+            'contributor_type_code' => '01',
+            'is_type_51' => true,
+        ]);
+        $processId = (int) $step1->json('processId');
+
+        $this->postJson('/api/enrollment/step-2', [
+            'process_id' => $processId,
+            'document_type' => 'CE',
+            'document_number' => 'EXT-991',
+            'first_name' => 'Jane',
+            'first_surname' => 'Doe',
+            'gender' => 'F',
+            'address' => 'Calle 5',
+            'cellphone' => '3004445566',
+            'is_foreigner' => true,
+        ])->assertOk()->assertJsonPath('currentStep', 2);
+
+        $p = EnrollmentProcess::query()->findOrFail($processId);
+        $this->assertTrue((bool) ($p->step2_payload['is_foreigner'] ?? false));
+    }
+
     private function seedRegulatoryRatesForPila(): void
     {
         $params = [
