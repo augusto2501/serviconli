@@ -47,15 +47,23 @@ class AffiliateExportTest extends TestCase
         $this->assertStringContainsString('export-afiliados-', $response->headers->get('Content-Disposition') ?? '');
         $raw = $response->streamedContent();
         $this->assertStringStartsWith("\xEF\xBB\xBF", $raw);
-        $this->assertStringContainsString('primer_nombre', $raw);
+        $this->assertStringContainsString('nombre_completo', $raw);
         $this->assertStringContainsString('Juan', $raw);
         $this->assertStringContainsString('AL_DIA', $raw);
-        $this->assertStringContainsString('eps', $raw);
+        $this->assertStringContainsString('indicador_pagos', $raw);
         $this->assertStringContainsString('EPS Demo', $raw);
+    }
+
+    public function test_export_xlsx_returns_spreadsheet(): void
+    {
+        $response = $this->get('/api/affiliates/export?format=xlsx');
+        $response->assertOk();
+        $this->assertStringContainsString('export-afiliados-', $response->headers->get('Content-Disposition') ?? '');
+        $this->assertStringContainsString('spreadsheetml', (string) $response->headers->get('Content-Type'));
     }
 
     public function test_export_rejects_unknown_format(): void
     {
-        $this->getJson('/api/affiliates/export?format=xlsx')->assertStatus(400);
+        $this->getJson('/api/affiliates/export?format=pdf')->assertStatus(400);
     }
 }

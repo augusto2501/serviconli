@@ -19,6 +19,7 @@ class Payer extends Model
         'digito_verificacion',
         'razon_social',
         'status',
+        'pila_operator_code',
     ];
 
     /** @return BelongsTo<Person, $this> */

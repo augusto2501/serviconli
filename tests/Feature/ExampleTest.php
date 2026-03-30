@@ -7,6 +7,11 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    protected function shouldAuthenticateApi(): bool
+    {
+        return false;
+    }
+
     /**
      * A basic test example.
      */

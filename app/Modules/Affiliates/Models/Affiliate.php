@@ -5,10 +5,12 @@ namespace App\Modules\Affiliates\Models;
 // DOCUMENTO_RECTOR §4 Grupo B — afl_affiliates
 
 use App\Modules\Affiliates\Enums\AffiliateClientType;
+use App\Modules\Affiliations\Models\AffiliatePayer;
 use App\Modules\Affiliations\Models\SocialSecurityProfile;
 use App\Modules\RegulatoryEngine\Models\AffiliateStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -59,5 +61,20 @@ class Affiliate extends Model
         return $this->hasOne(SocialSecurityProfile::class, 'affiliate_id')
             ->whereNull('valid_until')
             ->latestOfMany('valid_from');
+    }
+
+    /** Vínculo vigente afiliado–pagador (RF-028 / listado Mis Afiliados). */
+    /** @return HasOne<AffiliatePayer, $this> */
+    public function currentAffiliatePayer(): HasOne
+    {
+        return $this->hasOne(AffiliatePayer::class, 'affiliate_id')
+            ->whereNull('end_date')
+            ->latestOfMany('start_date');
+    }
+
+    /** @return HasMany<PortalCredential, $this> */
+    public function portalCredentials(): HasMany
+    {
+        return $this->hasMany(PortalCredential::class);
     }
 }

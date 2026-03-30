@@ -6,6 +6,7 @@ use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\Person;
 use App\Modules\Affiliations\Models\SocialSecurityProfile;
+use App\Modules\RegulatoryEngine\Models\RegulatoryParameter;
 use App\Modules\RegulatoryEngine\Models\SSEntity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -16,6 +17,8 @@ class EnrollmentWizardApiTest extends TestCase
 
     public function test_wizard_happy_path_1_to_6_persists_affiliate_and_related_data(): void
     {
+        $this->seedRegulatoryRatesForPila();
+
         $eps = SSEntity::query()->create([
             'pila_code' => 'EPS01',
             'name' => 'EPS Demo',
@@ -62,16 +65,34 @@ class EnrollmentWizardApiTest extends TestCase
             'valid_from' => '2026-01-01',
         ])->assertOk()->assertJsonPath('currentStep', 4);
 
-        $this->postJson('/api/enrollment/step-5', [
+        $step5 = $this->postJson('/api/enrollment/step-5', [
             'process_id' => $processId,
             'payment_method' => 'EFECTIVO',
             'billing_mode' => 'INDIVIDUAL',
-        ])->assertOk()->assertJsonPath('currentStep', 5);
+            'raw_ibc_pesos' => 1_750_905,
+        ]);
+        $step5->assertOk()->assertJsonPath('currentStep', 5);
+        $step5->assertJsonStructure([
+            'billingPreview' => [
+                'entryDate',
+                'cotizationYear',
+                'cotizationMonth',
+                'calendarDaysFromEntryToMonthEnd',
+                'billableDaysFirstMonth',
+                'monthlyFullSocialSecurityPesos',
+                'firstMonthProportionalSocialSecurityPesos',
+                'ibcRoundedPesos',
+            ],
+        ]);
 
         $confirm = $this->postJson('/api/enrollment/step-6/confirm', [
             'process_id' => $processId,
+            'habeas_data_accepted' => true,
         ]);
         $confirm->assertOk()->assertJsonPath('status', 'COMPLETED');
+        $radicado = $confirm->json('radicadoNumber');
+        $this->assertIsString($radicado);
+        $this->assertMatchesRegularExpression('/^RAD-\d{4}-\d{6}$/', $radicado);
 
         $this->assertSame(1, Person::query()->count());
         $this->assertSame(1, Affiliate::query()->count());
@@ -82,6 +103,127 @@ class EnrollmentWizardApiTest extends TestCase
         $this->assertNotNull($process);
         $this->assertSame('COMPLETED', $process->status);
         $this->assertNotNull($process->affiliate_id);
+        $this->assertNotNull($process->radicado_number);
+        $this->assertMatchesRegularExpression('/^RAD-\d{4}-\d{6}$/', $process->radicado_number ?? '');
+        $this->assertDatabaseCount('gdpr_consent_records', 1);
+    }
+
+    public function test_step5_rf_011_proportional_first_month_vs_full_30_days(): void
+    {
+        $this->seedRegulatoryRatesForPila();
+
+        $eps = SSEntity::query()->create([
+            'pila_code' => 'EPS03',
+            'name' => 'EPS Three',
+            'type' => 'EPS',
+            'status' => 'ACTIVE',
+        ]);
+
+        $step1 = $this->postJson('/api/enrollment/step-1', [
+            'client_type' => 'SERVICONLI',
+            'contributor_type_code' => '01',
+        ]);
+        $processId = (int) $step1->json('processId');
+
+        $this->postJson('/api/enrollment/step-2', [
+            'process_id' => $processId,
+            'document_type' => 'CC',
+            'document_number' => '55667788',
+            'first_name' => 'P',
+            'first_surname' => 'Q',
+            'gender' => 'M',
+            'address' => 'Addr',
+            'cellphone' => '3000000001',
+        ])->assertOk();
+
+        $this->postJson('/api/enrollment/step-3', [
+            'process_id' => $processId,
+            'beneficiaries' => [
+                [
+                    'document_number' => 'B-88',
+                    'document_type' => 'TI',
+                    'first_name' => 'H',
+                    'surnames' => 'Q',
+                ],
+            ],
+        ])->assertOk();
+
+        $this->postJson('/api/enrollment/step-4', [
+            'process_id' => $processId,
+            'eps_entity_id' => $eps->id,
+            'valid_from' => '2026-03-15',
+        ])->assertOk();
+
+        $r = $this->postJson('/api/enrollment/step-5', [
+            'process_id' => $processId,
+            'payment_method' => 'EFECTIVO',
+            'raw_ibc_pesos' => 1_750_905,
+        ]);
+        $r->assertOk();
+        $preview = $r->json('billingPreview');
+        $this->assertSame('2026-03-15', $preview['entryDate']);
+        $this->assertSame(17, $preview['calendarDaysFromEntryToMonthEnd']);
+        $this->assertSame(17, $preview['billableDaysFirstMonth']);
+        $full = (int) $preview['monthlyFullSocialSecurityPesos'];
+        $first = (int) $preview['firstMonthProportionalSocialSecurityPesos'];
+        $this->assertSame((int) round($full * 17 / 30), $first);
+    }
+
+    public function test_confirm_requires_habeas_acceptance(): void
+    {
+        $this->seedRegulatoryRatesForPila();
+
+        $eps = SSEntity::query()->create([
+            'pila_code' => 'EPS02',
+            'name' => 'EPS Two',
+            'type' => 'EPS',
+            'status' => 'ACTIVE',
+        ]);
+
+        $step1 = $this->postJson('/api/enrollment/step-1', [
+            'client_type' => 'SERVICONLI',
+            'contributor_type_code' => '01',
+        ]);
+        $processId = (int) $step1->json('processId');
+
+        $this->postJson('/api/enrollment/step-2', [
+            'process_id' => $processId,
+            'document_type' => 'CC',
+            'document_number' => '11112222',
+            'first_name' => 'X',
+            'first_surname' => 'Y',
+            'gender' => 'M',
+            'address' => 'Addr',
+            'cellphone' => '3000000000',
+        ])->assertOk();
+
+        $this->postJson('/api/enrollment/step-3', [
+            'process_id' => $processId,
+            'beneficiaries' => [
+                [
+                    'document_number' => 'B-99',
+                    'document_type' => 'TI',
+                    'first_name' => 'H',
+                    'surnames' => 'Y',
+                ],
+            ],
+        ])->assertOk();
+
+        $this->postJson('/api/enrollment/step-4', [
+            'process_id' => $processId,
+            'eps_entity_id' => $eps->id,
+        ])->assertOk();
+
+        $this->postJson('/api/enrollment/step-5', [
+            'process_id' => $processId,
+            'payment_method' => 'EFECTIVO',
+            'raw_ibc_pesos' => 1_750_905,
+        ])->assertOk();
+
+        $this->postJson('/api/enrollment/step-6/confirm', [
+            'process_id' => $processId,
+            'habeas_data_accepted' => false,
+        ])->assertStatus(422);
     }
 
     public function test_rejects_skipping_previous_step(): void
@@ -120,5 +262,33 @@ class EnrollmentWizardApiTest extends TestCase
         ]);
 
         $response->assertStatus(422);
+    }
+
+    private function seedRegulatoryRatesForPila(): void
+    {
+        $params = [
+            ['rates', 'SALUD_TOTAL_PERCENT', '12.5'],
+            ['rates', 'PENSION_TOTAL_PERCENT', '16'],
+            ['rates', 'ARL_RISK_CLASS_I_PERCENT', '0.522'],
+            ['rates', 'ARL_RISK_CLASS_II_PERCENT', '1.044'],
+            ['rates', 'ARL_RISK_CLASS_III_PERCENT', '2.436'],
+            ['rates', 'ARL_RISK_CLASS_IV_PERCENT', '4.350'],
+            ['rates', 'ARL_RISK_CLASS_V_PERCENT', '6.960'],
+            ['rates', 'CCF_DEPENDIENTE_PERCENT', '4'],
+            ['rates', 'CCF_INDEPENDIENTE_PERCENT', '2'],
+            ['mora', 'DAILY_RATE_PERCENT', '0.0833'],
+        ];
+
+        foreach ($params as [$category, $key, $value]) {
+            RegulatoryParameter::query()->create([
+                'category' => $category,
+                'key' => $key,
+                'value' => $value,
+                'data_type' => 'decimal',
+                'legal_basis' => 'Test',
+                'valid_from' => '2026-01-01',
+                'valid_until' => null,
+            ]);
+        }
     }
 }

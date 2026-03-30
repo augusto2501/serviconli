@@ -15,6 +15,8 @@ final class AffiliateNoteController extends Controller
 {
     public function index(Affiliate $affiliate): JsonResponse
     {
+        $this->authorize('view', $affiliate);
+
         $rows = AffiliateNote::query()->where('affiliate_id', $affiliate->id)->orderByDesc('id')->get();
 
         return response()->json([
@@ -24,6 +26,8 @@ final class AffiliateNoteController extends Controller
 
     public function store(Request $request, Affiliate $affiliate): JsonResponse
     {
+        $this->authorize('update', $affiliate);
+
         $validated = $request->validate([
             'note' => ['required', 'string', 'max:65535'],
             'note_type' => ['required', 'string', Rule::in(['ADMINISTRATIVA', 'MEDICA', 'GENERAL', 'PAGO'])],
@@ -33,7 +37,7 @@ final class AffiliateNoteController extends Controller
             'affiliate_id' => $affiliate->id,
             'note' => $validated['note'],
             'note_type' => $validated['note_type'],
-            'user_id' => null,
+            'user_id' => $request->user()->id,
             'created_at' => now(),
         ]);
 
@@ -46,6 +50,7 @@ final class AffiliateNoteController extends Controller
         return [
             'id' => $n->id,
             'affiliateId' => $n->affiliate_id,
+            'userId' => $n->user_id,
             'note' => $n->note,
             'noteType' => $n->note_type,
             'createdAt' => $n->created_at?->toIso8601String(),

@@ -2,25 +2,24 @@
 
 namespace App\Modules\Affiliates\Models;
 
-// RF-001 — proceso wizard 6 pasos
+// RF-012–RF-014
 
+use App\Modules\Billing\Models\BillInvoice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class EnrollmentProcess extends Model
+class ReentryProcess extends Model
 {
-    protected $table = 'wf_enrollment_processes';
+    protected $table = 'wf_reentry_processes';
 
     protected $fillable = [
         'status',
         'current_step',
+        'affiliate_id',
         'step1_payload',
         'step2_payload',
         'step3_payload',
-        'step4_payload',
-        'step5_payload',
-        'affiliate_id',
-        'radicado_number',
+        'bill_invoice_id',
         'completed_at',
     ];
 
@@ -30,8 +29,6 @@ class EnrollmentProcess extends Model
             'step1_payload' => 'array',
             'step2_payload' => 'array',
             'step3_payload' => 'array',
-            'step4_payload' => 'array',
-            'step5_payload' => 'array',
             'completed_at' => 'datetime',
         ];
     }
@@ -40,5 +37,11 @@ class EnrollmentProcess extends Model
     public function affiliate(): BelongsTo
     {
         return $this->belongsTo(Affiliate::class);
+    }
+
+    /** @return BelongsTo<BillInvoice, $this> */
+    public function billInvoice(): BelongsTo
+    {
+        return $this->belongsTo(BillInvoice::class, 'bill_invoice_id');
     }
 }

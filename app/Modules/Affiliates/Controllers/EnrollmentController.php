@@ -9,7 +9,11 @@ use App\Modules\Affiliates\Enums\AffiliateClientType;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\Beneficiary;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
+use App\Modules\Affiliates\Models\GdprConsentRecord;
 use App\Modules\Affiliates\Models\Person;
+use App\Modules\Affiliates\Services\EnrollmentBillingPreviewService;
+use App\Modules\Affiliates\Services\PostEnrollmentCompletionService;
+use App\Modules\Affiliates\Services\RadicadoNumberGenerator;
 use App\Modules\Affiliations\Models\SocialSecurityProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +25,8 @@ final class EnrollmentController extends Controller
 {
     public function step1(Request $request): JsonResponse
     {
+        $this->authorize('create', EnrollmentProcess::class);
+
         $validated = $request->validate([
             'client_type' => ['required', 'string', Rule::enum(AffiliateClientType::class)],
             'contributor_type_code' => ['required', 'string', 'max:16'],
@@ -44,6 +50,7 @@ final class EnrollmentController extends Controller
     public function step2(Request $request): JsonResponse
     {
         $process = $this->draftProcessFromRequest($request);
+        $this->authorize('update', $process);
         $this->ensureStepAllowed($process, 2);
 
         $validated = $request->validate([
@@ -73,6 +80,7 @@ final class EnrollmentController extends Controller
     public function step3(Request $request): JsonResponse
     {
         $process = $this->draftProcessFromRequest($request);
+        $this->authorize('update', $process);
         $this->ensureStepAllowed($process, 3);
 
         $validated = $request->validate([
@@ -97,6 +105,7 @@ final class EnrollmentController extends Controller
     public function step4(Request $request): JsonResponse
     {
         $process = $this->draftProcessFromRequest($request);
+        $this->authorize('update', $process);
         $this->ensureStepAllowed($process, 4);
 
         $validated = $request->validate([
@@ -119,31 +128,75 @@ final class EnrollmentController extends Controller
     public function step5(Request $request): JsonResponse
     {
         $process = $this->draftProcessFromRequest($request);
+        $this->authorize('update', $process);
         $this->ensureStepAllowed($process, 5);
 
         $validated = $request->validate([
             'payment_method' => ['required', 'string', 'max:32'],
             'billing_mode' => ['nullable', 'string', 'max:32'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'raw_ibc_pesos' => ['required', 'integer', 'min:1', 'max:999999999999'],
+            'arl_risk_class' => ['nullable', 'integer', 'min:1', 'max:5'],
         ]);
 
+        $arlRisk = (int) ($validated['arl_risk_class'] ?? 1);
+        $preview = app(EnrollmentBillingPreviewService::class)->preview(
+            $process,
+            (int) $validated['raw_ibc_pesos'],
+            $arlRisk,
+        );
+
+        $step5Payload = array_merge($validated, ['billing_preview' => $preview]);
+
         $process->update([
-            'step5_payload' => $validated,
+            'step5_payload' => $step5Payload,
             'current_step' => max($process->current_step, 5),
         ]);
 
-        return response()->json($this->processToArray($process->fresh()));
+        $fresh = $process->fresh();
+
+        return response()->json(array_merge($this->processToArray($fresh), [
+            'billingPreview' => $preview,
+        ]));
     }
 
     public function confirm(Request $request): JsonResponse
     {
-        $process = $this->draftProcessFromRequest($request);
+        $validated = $request->validate([
+            'process_id' => ['required', 'integer', 'min:1'],
+            'habeas_data_accepted' => ['required', 'boolean'],
+        ]);
+
+        if (! $validated['habeas_data_accepted']) {
+            throw ValidationException::withMessages([
+                'habeas_data_accepted' => 'Debe aceptar el tratamiento de datos personales (Ley 1581/2012).',
+            ]);
+        }
+
+        $process = EnrollmentProcess::query()->find($validated['process_id']);
+        if ($process === null) {
+            throw ValidationException::withMessages([
+                'process_id' => 'Proceso no encontrado.',
+            ]);
+        }
+        if ($process->status !== 'DRAFT') {
+            throw ValidationException::withMessages([
+                'process_id' => 'Proceso ya finalizado.',
+            ]);
+        }
+
+        $this->authorize('update', $process);
 
         if ($process->current_step < 5 || $process->step1_payload === null || $process->step2_payload === null || $process->step3_payload === null || $process->step4_payload === null || $process->step5_payload === null) {
             return response()->json(['message' => 'No puede confirmar: faltan pasos previos del wizard.'], 422);
         }
 
-        $affiliate = DB::transaction(function () use ($process): Affiliate {
+        $radicadoGenerator = app(RadicadoNumberGenerator::class);
+
+        $affiliate = DB::transaction(function () use ($process, $request, $radicadoGenerator): Affiliate {
+            $radicado = $radicadoGenerator->next();
+
+            $acceptedAt = now();
             $s1 = $process->step1_payload ?? [];
             $s2 = $process->step2_payload ?? [];
             $s3 = $process->step3_payload ?? [];
@@ -201,16 +254,29 @@ final class EnrollmentController extends Controller
                 'status' => 'COMPLETED',
                 'current_step' => 6,
                 'affiliate_id' => $affiliate->id,
-                'completed_at' => now(),
+                'radicado_number' => $radicado,
+                'completed_at' => $acceptedAt,
+            ]);
+
+            GdprConsentRecord::query()->create([
+                'enrollment_process_id' => $process->id,
+                'affiliate_id' => $affiliate->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'accepted_at' => $acceptedAt,
             ]);
 
             return $affiliate;
         });
 
+        $process = $process->fresh();
+        app(PostEnrollmentCompletionService::class)->handle($process, $affiliate);
+
         return response()->json([
             'processId' => $process->id,
             'status' => 'COMPLETED',
             'affiliateId' => $affiliate->id,
+            'radicadoNumber' => $process->radicado_number,
         ]);
     }
 

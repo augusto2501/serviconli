@@ -24,6 +24,10 @@ class ProjectSchemaMigrationsTest extends TestCase
             'empl_employers',
             'bill_invoices',
             'cash_daily_closures',
+            'radicado_yearly_sequences',
+            'gdpr_consent_records',
+            'wf_reentry_processes',
+            'afl_portal_credentials',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Falta tabla {$table}");
         }

@@ -13,15 +13,18 @@ _Actualizado con el avance de implementación en código (marzo 2026)._
 | RF-002 | Hecho | `AffiliateClientType` + columna `client_type` |
 | RF-003–RF-004 | En curso | Catálogo cotizante en motor; subtipos en esquema `afl_affiliates.subtipo` |
 | RF-005–RF-007 | En curso | `core_people` alineado; validación API mínima; faltan reglas completas paso 2/7 |
-| RF-008–RF-011 | No iniciado | Radicado, consentimiento, recibos, PDF |
-| RF-012–RF-014 | No iniciado | Reingreso |
-| RF-015 | Hecho (parcial) | `GET /api/affiliates/{id}/ficha-360` — sin aportes, portales, documentos |
+| RF-008 | Hecho (parcial) | `RadicadoNumberGenerator` + `radicado_yearly_sequences`; formato `RAD-{YYYY}-{NNNNNN}`; radicado en `wf_enrollment_processes.radicado_number` al confirmar |
+| RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user agent y `accepted_at` |
+| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService` como punto de enganche; recibo/PDF/comisión/tercero/WhatsApp pendientes |
+| RF-011 | Hecho (parcial) | Paso 5: `raw_ibc_pesos` + `EnrollmentBillingPreviewService` → `billingPreview` (primer mes proporcional días ingreso→fin de mes, tope 30; total mensual base 30 días vía `PILACalculationService`) |
+| RF-012–RF-014 | Hecho (parcial) | `GET /api/reentry/eligible`, `POST /api/reentry/start`, pasos 1–3 (persona, entidades SS + `valid_from`, `payer_id` + cotizante), `POST /api/reentry/confirm`: cierra perfil SS y vínculo pagador, nuevo perfil SS, `bill_invoices.tipo=03`, estado `AFILIADO`. Seed `cfg_affiliate_statuses` RETIRADO/INACTIVO/AFILIADO |
+| RF-015 | Hecho (parcial) | `GET /api/affiliates/{id}/ficha-360` vía `Ficha360ViewBuilder`: persona ampliada, estado/código, perfil SS vigente con `pilaCode` por entidad, pagador vigente, beneficiarios/notas (recientes), liquidaciones PILA confirmadas con líneas por período, `lastPaidPeriod`, facturas recientes, excepciones operativas activas; **portales** con `afl_portal_credentials` + API `GET/POST/PATCH/DELETE /api/affiliates/{id}/portal-credentials` (contraseña en claro por defecto; `PORTAL_CREDENTIALS_ENCRYPT=true` activa cifrado Laravel); documentos aún como hint |
 | RF-016 | No iniciado | Acciones rápidas en UI |
 | RF-017 | Hecho (parcial) | Tabla + API list/create beneficiarios |
 | RF-018 | No iniciado | Alertas automáticas |
-| RF-019 | Hecho (parcial) | Tabla + API notas; `user_id` pendiente de auth |
+| RF-019 | Hecho (parcial) | Tabla + API notas; `user_id` rellenado con usuario Sanctum; respuesta incluye `userId` |
 | RF-020 | En curso | Notas en API; falta integración vista Mis Afiliados UI |
-| RF-021–RF-023 | En curso | Listado + `q` + `client_type` + `status_id` + `mora_status`; **export CSV** `GET /api/affiliates/export?format=csv` (BOM UTF-8, `;`) con columnas EPS/AFP/ARL/CCF desde perfil vigente. Falta paridad total con hoja Excel |
+| RF-021–RF-023 | Hecho (parcial) | `GET /api/affiliates` con payload tipo hoja DATA: nombre completo, tipo cotizante (vínculo pagador vigente), estado/códigos, mora, `paymentIndicator` (SI/NO/ANTICIPADO/NEUTRO desde `mora_status`), EPS/AFP/ARL/CCF, operador PILA (`afl_payers.pila_operator_code`), último período pagado (liquidaciones PILA confirmadas), notas operativas + conteo notas formales. **Filtros RF-022:** `contributor_type_code`, `payer_id`, `advisor_id`, `pila_operator_code`, `eps_entity_id` / `afp_entity_id` / `arl_entity_id` / `ccf_entity_id`, `payments_on_track` (`yes`/`no`/`ahead`) + existentes. **Export:** `GET /api/affiliates/export?format=csv|xlsx` (OpenSpout). Paridad fina con Excel/columnas legacy pendiente |
 
 ## 2. Empleadores
 
@@ -37,7 +40,7 @@ _Actualizado con el avance de implementación en código (marzo 2026)._
 | BC-05 Liquidación producto | Hecho (parcial) | Tablas `pay_liquidation_*`; comandos `pila:*` stub |
 | BC-06 Facturación | Hecho (parcial) | `bill_invoices` mínima |
 | BC-07 Caja | Hecho (parcial) | `cash_daily_closures` mínima |
-| BC-13 Seguridad | No iniciado | Sanctum/policies según ESTRUCTURA |
+| BC-13 Seguridad | Hecho (parcial) | Laravel Sanctum: tokens `personal_access_tokens`; `POST /api/login` (throttle 5/min), `POST /api/logout` + `GET /api/user` con `auth:sanctum`; rutas módulos bajo `middleware(['api','auth:sanctum'])`; políticas `Affiliate`, `Employer`, `EnrollmentProcess`, `ReentryProcess`, `PilaLiquidation` (extensible a roles); notas con `user_id` del usuario autenticado |
 | RF-028–RF-029 | Hecho (parcial) | Perfiles SS versionados + `SocialSecurityProfileService` |
 | ETL (SKILL) | Hecho (parcial) | `etl:migrate-excel` / `etl:migrate-access` stub |
 

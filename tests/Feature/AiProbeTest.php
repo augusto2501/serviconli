@@ -7,6 +7,11 @@ use Tests\TestCase;
 
 class AiProbeTest extends TestCase
 {
+    protected function shouldAuthenticateApi(): bool
+    {
+        return false;
+    }
+
     public function test_ai_probe_returns_claude_answer_when_upstream_is_ok(): void
     {
         config()->set('services.anthropic.key', 'test-key');

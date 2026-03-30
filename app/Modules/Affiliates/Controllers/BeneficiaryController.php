@@ -14,6 +14,8 @@ final class BeneficiaryController extends Controller
 {
     public function index(Affiliate $affiliate): JsonResponse
     {
+        $this->authorize('view', $affiliate);
+
         $rows = Beneficiary::query()->where('affiliate_id', $affiliate->id)->orderBy('id')->get();
 
         return response()->json([
@@ -23,6 +25,8 @@ final class BeneficiaryController extends Controller
 
     public function store(Request $request, Affiliate $affiliate): JsonResponse
     {
+        $this->authorize('update', $affiliate);
+
         $validated = $request->validate([
             'document_number' => ['required', 'string', 'max:32'],
             'document_type' => ['nullable', 'string', 'max:16'],

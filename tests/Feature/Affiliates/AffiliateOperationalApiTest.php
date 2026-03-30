@@ -32,6 +32,20 @@ class AffiliateOperationalApiTest extends TestCase
 
         $r = $this->getJson('/api/affiliates/'.$a->id.'/ficha-360');
         $r->assertOk()
+            ->assertJsonStructure([
+                'affiliate',
+                'person',
+                'socialSecurity',
+                'payer',
+                'counts',
+                'beneficiaries',
+                'notes',
+                'contributions',
+                'invoices',
+                'operationalExceptions',
+                'portals',
+                'documents',
+            ])
             ->assertJsonPath('person.documentNumber', '8001')
             ->assertJsonPath('counts.beneficiaries', 0)
             ->assertJsonPath('counts.notes', 0);

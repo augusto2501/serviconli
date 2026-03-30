@@ -14,7 +14,9 @@ final class EmployerController extends Controller
 {
     public function __construct(
         private readonly EmployerNitValidationService $nitValidation,
-    ) {}
+    ) {
+        $this->authorizeResource(Employer::class, 'employer');
+    }
 
     public function index(Request $request): JsonResponse
     {

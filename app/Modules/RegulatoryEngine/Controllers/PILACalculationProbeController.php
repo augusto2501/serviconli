@@ -3,6 +3,7 @@
 namespace App\Modules\RegulatoryEngine\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\PILALiquidation\Models\PilaLiquidation;
 use App\Modules\RegulatoryEngine\DTOs\CalculationInputDTO;
 use App\Modules\RegulatoryEngine\DTOs\PeriodIbcInput;
 use App\Modules\RegulatoryEngine\Exceptions\MissingRegulatoryParameterException;
@@ -73,6 +74,8 @@ final class PILACalculationProbeController extends Controller
 
     public function consolidated(Request $request, ConsolidatedPILACalculationService $consolidated): JsonResponse
     {
+        $this->authorize('viewAny', PilaLiquidation::class);
+
         $validated = $request->validate([
             'periods' => ['required', 'array', 'min:1', 'max:120'],
             'periods.*.year' => ['required', 'integer', 'min:1970', 'max:2100'],

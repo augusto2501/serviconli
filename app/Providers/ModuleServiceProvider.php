@@ -47,7 +47,7 @@ class ModuleServiceProvider extends ServiceProvider
 
             $api = $base.'/routes/api.php';
             if (is_file($api)) {
-                Route::middleware('api')->prefix('api')->group(function () use ($api) {
+                Route::middleware(['api', 'auth:sanctum'])->prefix('api')->group(function () use ($api) {
                     require $api;
                 });
             }

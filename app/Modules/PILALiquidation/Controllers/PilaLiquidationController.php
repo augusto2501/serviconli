@@ -22,6 +22,8 @@ final class PilaLiquidationController extends Controller
         ConsolidatedPILACalculationService $consolidated,
         StorePilaLiquidationService $store,
     ): JsonResponse {
+        $this->authorize('create', PilaLiquidation::class);
+
         $validated = $request->validate([
             'periods' => ['required', 'array', 'min:1', 'max:120'],
             'periods.*.year' => ['required', 'integer', 'min:1970', 'max:2100'],
@@ -95,6 +97,8 @@ final class PilaLiquidationController extends Controller
             return response()->json(['message' => 'Liquidación no encontrada.'], 404);
         }
 
+        $this->authorize('view', $liquidation);
+
         return response()->json($this->liquidationToArray($liquidation));
     }
 
@@ -105,6 +109,8 @@ final class PilaLiquidationController extends Controller
         if ($liquidation === null) {
             return response()->json(['message' => 'Liquidación no encontrada.'], 404);
         }
+
+        $this->authorize('update', $liquidation);
 
         try {
             $updated = $state->confirm($liquidation);
@@ -122,6 +128,8 @@ final class PilaLiquidationController extends Controller
         if ($liquidation === null) {
             return response()->json(['message' => 'Liquidación no encontrada.'], 404);
         }
+
+        $this->authorize('update', $liquidation);
 
         try {
             $updated = $state->cancel($liquidation);
