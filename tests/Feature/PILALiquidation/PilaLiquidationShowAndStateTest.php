@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\PILALiquidation;
 
+use App\Modules\Affiliates\Enums\AffiliateClientType;
 use App\Modules\Affiliates\Models\Affiliate;
+use App\Modules\Affiliates\Models\Person;
 use App\Modules\PILALiquidation\Models\PilaLiquidation;
 use App\Modules\RegulatoryEngine\Models\RegulatoryParameter;
 use Database\Seeders\PaymentCalendarRuleSeeder;
@@ -25,10 +27,14 @@ class PilaLiquidationShowAndStateTest extends TestCase
         $this->seed(PaymentCalendarRuleSeeder::class);
         $this->seedDefaultRates();
 
-        $affiliate = Affiliate::query()->create([
+        $person = Person::query()->create([
             'document_number' => '9876543210',
             'first_name' => 'Luis',
-            'last_name' => 'Gómez',
+            'first_surname' => 'Gómez',
+        ]);
+        $affiliate = Affiliate::query()->create([
+            'person_id' => $person->id,
+            'client_type' => AffiliateClientType::SERVICONLI,
         ]);
 
         $create = $this->postJson('/api/pila/liquidations', [

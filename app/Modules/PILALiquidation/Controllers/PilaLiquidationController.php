@@ -33,7 +33,8 @@ final class PilaLiquidationController extends Controller
             'document_last_two_digits' => ['required', 'integer', 'min:0', 'max:99'],
             'target_type' => ['nullable', 'string', 'max:100', 'required_with:target_id'],
             'target_id' => ['nullable', 'integer', 'min:1', 'required_with:target_type'],
-            'affiliate_id' => ['nullable', 'integer', 'exists:affiliates,id'],
+            // DOCUMENTO_RECTOR §4 — afiliado persistido en afl_affiliates
+            'affiliate_id' => ['nullable', 'integer', 'exists:afl_affiliates,id'],
         ]);
 
         $periods = [];
@@ -80,14 +81,14 @@ final class PilaLiquidationController extends Controller
             $affiliateId,
         );
 
-        return response()->json($this->liquidationToArray($liquidation->load('lines', 'affiliate')), 201);
+        return response()->json($this->liquidationToArray($liquidation->load('lines', 'affiliate.person')), 201);
     }
 
     public function show(string $publicId): JsonResponse
     {
         $liquidation = PilaLiquidation::query()
             ->where('public_id', $publicId)
-            ->with(['lines', 'affiliate'])
+            ->with(['lines', 'affiliate.person'])
             ->first();
 
         if ($liquidation === null) {
@@ -134,7 +135,7 @@ final class PilaLiquidationController extends Controller
     /** @return array<string, mixed> */
     private function liquidationToArray(PilaLiquidation $l): array
     {
-        $l->loadMissing('lines', 'affiliate');
+        $l->loadMissing('lines', 'affiliate.person');
 
         return [
             'id' => $l->id,
@@ -148,9 +149,9 @@ final class PilaLiquidationController extends Controller
             'targetId' => $l->target_id,
             'affiliate' => $l->affiliate !== null ? [
                 'id' => $l->affiliate->id,
-                'documentNumber' => $l->affiliate->document_number,
-                'firstName' => $l->affiliate->first_name,
-                'lastName' => $l->affiliate->last_name,
+                'documentNumber' => $l->affiliate->person?->document_number,
+                'firstName' => $l->affiliate->person?->first_name,
+                'lastName' => $l->affiliate->person?->first_surname,
             ] : null,
             'totalSocialSecurityPesos' => $l->total_social_security_pesos,
             'subsystemTotalsPesos' => $l->subsystem_totals_pesos,

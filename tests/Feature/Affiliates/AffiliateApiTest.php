@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Affiliates;
 
+use App\Modules\Affiliates\Enums\AffiliateClientType;
 use App\Modules\Affiliates\Models\Affiliate;
+use App\Modules\Affiliates\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,15 +49,21 @@ class AffiliateApiTest extends TestCase
         $delete = $this->deleteJson('/api/affiliates/'.$id);
         $delete->assertNoContent();
 
-        $this->assertDatabaseCount('affiliates', 0);
+        $this->assertSame(0, Affiliate::query()->count());
+        $this->assertSame(0, Person::query()->count());
+        $this->getJson('/api/affiliates/'.$id)->assertNotFound();
     }
 
     public function test_store_rejects_duplicate_document_number(): void
     {
-        Affiliate::query()->create([
+        $person = Person::query()->create([
             'document_number' => '111',
             'first_name' => 'A',
-            'last_name' => 'B',
+            'first_surname' => 'B',
+        ]);
+        Affiliate::query()->create([
+            'person_id' => $person->id,
+            'client_type' => AffiliateClientType::SERVICONLI,
         ]);
 
         $response = $this->postJson('/api/affiliates', [

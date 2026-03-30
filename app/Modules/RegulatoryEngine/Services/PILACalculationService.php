@@ -11,14 +11,15 @@ use App\Modules\RegulatoryEngine\Repositories\RegulatoryParameterRepository;
 use App\Modules\RegulatoryEngine\ValueObjects\IBC;
 
 /**
- * Orquestador de liquidación PILA. Las tarifas y reglas por tipo de cotizante
- * vendrán de cfg_* y estrategias; aquí solo la base IBC redondeada (Fase 1).
+ * Orquestador de liquidación PILA. Tarifas desde cfg_*; mora §3.6; solidaridad §3.5.
  */
 final class PILACalculationService
 {
     public function __construct(
         private readonly ?OperationalExceptionService $operationalExceptions = null,
         private readonly ?RegulatoryParameterRepository $regulatoryParameters = null,
+        private readonly ?MoraInterestService $moraInterest = null,
+        private readonly ?SolidarityFundCalculator $solidarityFundCalculator = null,
     ) {}
 
     public function calculate(
@@ -45,7 +46,21 @@ final class PILACalculationService
             $moraRatePercent = $service->moraRateOverridePercent($targetType, $targetId, $date) ?? $moraRatePercent;
         }
 
-        $moraInterest = $this->calculateMoraInterestPesos($ibc->valueInPesos, $daysLate, $moraExempt, $moraRatePercent);
+        $moraSvc = $this->moraInterest ?? new MoraInterestService;
+        $moraInterest = $moraSvc->interestPesos($ibc->valueInPesos, $daysLate, $moraExempt, $moraRatePercent);
+
+        $solidarityPesos = 0;
+        $solidarityRatePercent = null;
+        $solidarityMinSmmlv = null;
+        $repo = $this->regulatoryParameters;
+        if ($repo !== null) {
+            $solCalc = $this->solidarityFundCalculator ?? new SolidarityFundCalculator($repo);
+            $sol = $solCalc->compute($ibc->valueInPesos, $date);
+            $solidarityPesos = $sol['pesos'];
+            $solidarityRatePercent = $sol['rate_percent'];
+            $solidarityMinSmmlv = $sol['min_smmlv_bracket'];
+        }
+
         $healthTotal = $this->subsystemApplies($input->contributorTypeCode, SubsystemType::SALUD)
             ? $this->percentOf($ibc->valueInPesos, $healthRatePercent)
             : 0;
@@ -58,7 +73,7 @@ final class PILACalculationService
         $ccfTotal = $this->subsystemApplies($input->contributorTypeCode, SubsystemType::CCF)
             ? $this->percentOf($ibc->valueInPesos, $ccfRatePercent)
             : 0;
-        $total = $healthTotal + $pensionTotal + $arlTotal + $ccfTotal + $moraInterest;
+        $total = $healthTotal + $pensionTotal + $arlTotal + $ccfTotal + $moraInterest + $solidarityPesos;
 
         $subsystemAmounts['mora_exempt'] = $moraExempt;
         $subsystemAmounts['mora_rate_percent'] = $moraRatePercent;
@@ -71,23 +86,15 @@ final class PILACalculationService
         $subsystemAmounts['arl_total_pesos'] = $arlTotal;
         $subsystemAmounts['ccf_total_pesos'] = $ccfTotal;
         $subsystemAmounts['ccf_rate_percent'] = $ccfRatePercent;
+        $subsystemAmounts['solidarity_fund_pesos'] = $solidarityPesos;
+        $subsystemAmounts['solidarity_rate_percent'] = $solidarityRatePercent;
+        $subsystemAmounts['solidarity_min_smmlv_bracket'] = $solidarityMinSmmlv;
 
         return new CalculationResultDTO(
             ibcRoundedPesos: $ibc->valueInPesos,
             subsystemAmountsPesos: $subsystemAmounts,
             totalSocialSecurityPesos: $total,
         );
-    }
-
-    private function calculateMoraInterestPesos(int $ibcRoundedPesos, int $daysLate, bool $moraExempt, float $moraRatePercent): int
-    {
-        if ($moraExempt || $daysLate <= 0) {
-            return 0;
-        }
-
-        $dailyRate = $moraRatePercent / 100;
-
-        return (int) round($ibcRoundedPesos * $dailyRate * $daysLate);
     }
 
     private function percentOf(int $base, float $percent): int

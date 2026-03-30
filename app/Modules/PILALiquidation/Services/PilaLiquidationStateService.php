@@ -16,7 +16,7 @@ final class PilaLiquidationStateService
 
         $liquidation->update(['status' => PilaLiquidationStatus::Confirmed]);
 
-        return $liquidation->fresh()->load('lines', 'affiliate');
+        return $liquidation->fresh()->load('lines', 'affiliate.person');
     }
 
     public function cancel(PilaLiquidation $liquidation): PilaLiquidation
@@ -27,6 +27,6 @@ final class PilaLiquidationStateService
 
         $liquidation->update(['status' => PilaLiquidationStatus::Cancelled]);
 
-        return $liquidation->fresh()->load('lines', 'affiliate');
+        return $liquidation->fresh()->load('lines', 'affiliate.person');
     }
 }
