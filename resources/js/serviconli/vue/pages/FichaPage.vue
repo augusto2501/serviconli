@@ -31,6 +31,19 @@ function quickAction() {
     window.alert('Próximamente: este flujo se conectará al módulo correspondiente (RF-016).');
 }
 
+const beneficiaryHeaders = [
+    { title: 'Documento', key: 'documentNumber' },
+    { title: 'Nombre', key: 'fullName' },
+    { title: 'Parentesco', key: 'parentesco' },
+    { title: 'Nacimiento', key: 'birthDate' },
+    { title: 'Género', key: 'gender' },
+];
+
+function beneficiaryFullName(item) {
+    const parts = [item.firstName, item.surnames].filter(Boolean);
+    return parts.length ? parts.join(' ') : '—';
+}
+
 onMounted(() => {
     if (!requireAuth()) return;
     loadFicha();
@@ -82,8 +95,43 @@ onMounted(() => {
                     <p><strong>Estado:</strong> {{ data.affiliate?.statusName || data.affiliate?.statusCode || '—' }}</p>
                     <p><strong>Mora:</strong> {{ data.affiliate?.moraStatus || '—' }}</p>
                     <p><strong>Tipo cliente:</strong> {{ data.affiliate?.clientType || '—' }}</p>
+                    <p class="text-stone-600 text-sm mt-2">
+                        Beneficiarios vinculados (titular): <strong>{{ data.counts?.beneficiaries ?? data.beneficiaries?.total ?? 0 }}</strong>
+                    </p>
                 </v-card-text>
             </v-card>
         </div>
+
+        <v-card v-if="data && !loading" class="border border-stone-200/90">
+            <v-card-title class="d-flex align-center justify-space-between flex-wrap gap-2">
+                <span>Beneficiarios (RF-017)</span>
+                <v-chip size="small" color="teal-darken-2" variant="flat">
+                    {{ data.beneficiaries?.total ?? 0 }} registro(s)
+                </v-chip>
+            </v-card-title>
+            <v-card-text>
+                <p v-if="!(data.beneficiaries?.items?.length)" class="text-stone-600 text-body-2">
+                    No hay beneficiarios registrados para este afiliado titular.
+                </p>
+                <v-data-table
+                    v-else
+                    :headers="beneficiaryHeaders"
+                    :items="data.beneficiaries.items"
+                    items-per-page="-1"
+                    hide-default-footer
+                    density="comfortable"
+                >
+                    <template #item.documentNumber="{ item }">
+                        <span class="font-mono text-body-2">
+                            {{ item.documentType ? `${item.documentType} ` : '' }}{{ item.documentNumber || '—' }}
+                        </span>
+                    </template>
+                    <template #item.fullName="{ item }">{{ beneficiaryFullName(item) }}</template>
+                    <template #item.parentesco="{ item }">{{ item.parentesco || '—' }}</template>
+                    <template #item.birthDate="{ item }">{{ item.birthDate || '—' }}</template>
+                    <template #item.gender="{ item }">{{ item.gender || '—' }}</template>
+                </v-data-table>
+            </v-card-text>
+        </v-card>
     </div>
 </template>
