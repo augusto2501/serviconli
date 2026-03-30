@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             ColombianHoliday2026Seeder::class,
             ContributorTypeSeeder::class,
             ContributorTypeSubsystemSeeder::class,
+            SampleAffiliatesSeeder::class,
         ]);
     }
 }
