@@ -19,11 +19,11 @@ _Actualizado con el avance de implementación en código (marzo 2026)._
 | RF-011 | Hecho (parcial) | Paso 5: `raw_ibc_pesos` + `EnrollmentBillingPreviewService` → `billingPreview` (primer mes proporcional días ingreso→fin de mes, tope 30; total mensual base 30 días vía `PILACalculationService`) |
 | RF-012–RF-014 | Hecho (parcial) | `GET /api/reentry/eligible`, `POST /api/reentry/start`, pasos 1–3 (persona, entidades SS + `valid_from`, `payer_id` + cotizante), `POST /api/reentry/confirm`: cierra perfil SS y vínculo pagador, nuevo perfil SS, `bill_invoices.tipo=03`, estado `AFILIADO`. Seed `cfg_affiliate_statuses` RETIRADO/INACTIVO/AFILIADO |
 | RF-015 | Hecho (parcial) | `GET /api/affiliates/{id}/ficha-360` vía `Ficha360ViewBuilder`: persona ampliada, estado/código, perfil SS vigente con `pilaCode` por entidad, pagador vigente, beneficiarios/notas (recientes), liquidaciones PILA confirmadas con líneas por período, `lastPaidPeriod`, facturas recientes, excepciones operativas activas; **portales** con `afl_portal_credentials` + API `GET/POST/PATCH/DELETE /api/affiliates/{id}/portal-credentials` (contraseña en claro por defecto; `PORTAL_CREDENTIALS_ENCRYPT=true` activa cifrado Laravel); documentos aún como hint |
-| RF-016 | No iniciado | Acciones rápidas en UI |
+| RF-016 | Hecho (parcial) | Ficha 360° web: accesos rápidos en UI (`/afiliados/{id}/ficha`); acciones conectadas como “próximamente” hasta flujos definitivos |
 | RF-017 | Hecho (parcial) | Tabla + API list/create beneficiarios |
 | RF-018 | No iniciado | Alertas automáticas |
 | RF-019 | Hecho (parcial) | Tabla + API notas; `user_id` rellenado con usuario Sanctum; respuesta incluye `userId` |
-| RF-020 | En curso | Notas en API; falta integración vista Mis Afiliados UI |
+| RF-020 | Hecho (parcial) | Vista web **Mis afiliados** (`/mis-afiliados`) + login (`/login`) con token Sanctum en `sessionStorage`; listado y export CSV/XLSX vía API; enlace a ficha 360° |
 | RF-021–RF-023 | Hecho (parcial) | `GET /api/affiliates` con payload tipo hoja DATA: nombre completo, tipo cotizante (vínculo pagador vigente), estado/códigos, mora, `paymentIndicator` (SI/NO/ANTICIPADO/NEUTRO desde `mora_status`), EPS/AFP/ARL/CCF, operador PILA (`afl_payers.pila_operator_code`), último período pagado (liquidaciones PILA confirmadas), notas operativas + conteo notas formales. **Filtros RF-022:** `contributor_type_code`, `payer_id`, `advisor_id`, `pila_operator_code`, `eps_entity_id` / `afp_entity_id` / `arl_entity_id` / `ccf_entity_id`, `payments_on_track` (`yes`/`no`/`ahead`) + existentes. **Export:** `GET /api/affiliates/export?format=csv|xlsx` (OpenSpout). Paridad fina con Excel/columnas legacy pendiente |
 
 ## 2. Empleadores

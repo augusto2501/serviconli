@@ -300,7 +300,7 @@
                 <nav class="landing__nav" aria-label="Principal">
                     @if (Route::has('login'))
                         @auth
-                            <a href="{{ url('/dashboard') }}">Panel</a>
+                            <a href="{{ route('mis-afiliados') }}">Mis afiliados</a>
                         @else
                             <a href="{{ route('login') }}">Iniciar sesión</a>
                             @if (Route::has('register'))
