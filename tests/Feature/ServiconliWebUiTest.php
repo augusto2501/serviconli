@@ -40,4 +40,9 @@ class ServiconliWebUiTest extends TestCase
     {
         $this->get('/generar-pila')->assertOk()->assertSee('serviconli-vue-root', false);
     }
+
+    public function test_cartera_page_returns_ok(): void
+    {
+        $this->get('/cartera')->assertOk()->assertSee('serviconli-vue-root', false);
+    }
 }

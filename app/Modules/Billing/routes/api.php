@@ -1,3 +1,19 @@
 <?php
 
-// Rutas API del módulo (prefijo /api aplicado por ModuleServiceProvider).
+use App\Modules\Billing\Controllers\CuentaCobroController;
+use App\Modules\Billing\Controllers\InvoiceController;
+use Illuminate\Support\Facades\Route;
+
+// Cuentas de cobro — Flujo 5/6
+Route::get('/cuentas-cobro', [CuentaCobroController::class, 'index']);
+Route::post('/cuentas-cobro', [CuentaCobroController::class, 'store']);
+Route::get('/cuentas-cobro/{id}', [CuentaCobroController::class, 'show']);
+Route::post('/cuentas-cobro/{id}/definitiva', [CuentaCobroController::class, 'makeDefinitiva']);
+Route::post('/cuentas-cobro/{id}/pay', [CuentaCobroController::class, 'pay']);
+Route::post('/cuentas-cobro/{id}/cancel', [CuentaCobroController::class, 'cancel']);
+
+// Recibos / Facturas — Flujo 7
+Route::get('/invoices', [InvoiceController::class, 'index']);
+Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+Route::post('/invoices', [InvoiceController::class, 'store']);
+Route::post('/invoices/{id}/cancel', [InvoiceController::class, 'cancel']);

@@ -25,4 +25,7 @@ Route::view('/liquidacion-lotes', 'liquidation.batch')->name('liquidation.batch'
 // Flujo 8 — Generación Archivo PILA
 Route::view('/generar-pila', 'liquidation.pila-file')->name('liquidation.pila-file');
 
+// Flujos 5/6/7 — Cartera y Facturación
+Route::view('/cartera', 'billing.cartera')->name('billing.cartera');
+
 Route::get('/ai/probe', AiProbeController::class);

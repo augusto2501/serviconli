@@ -2,13 +2,13 @@
 
 namespace App\Modules\PILALiquidation\Listeners;
 
-use App\Modules\Billing\Models\BillInvoice;
+use App\Modules\Billing\Models\ServiceContract;
+use App\Modules\Billing\Services\CuentaCobroService;
 use App\Modules\PILALiquidation\Events\BatchConfirmed;
-use Illuminate\Support\Str;
 
 /**
  * RN-08: Al confirmar un lote de liquidación por empresa,
- * si el pagador paga por cuenta de cobro → generar factura automática.
+ * si el pagador paga por cuenta de cobro → generar cuenta de cobro automática.
  *
  * Portado de Access Form_004 Btn_Confirmar → CuentaCobro.
  *
@@ -16,6 +16,10 @@ use Illuminate\Support\Str;
  */
 final class GenerateCuentaCobroOnBatchConfirm
 {
+    public function __construct(
+        private readonly CuentaCobroService $cuentaCobroService,
+    ) {}
+
     public function handle(BatchConfirmed $event): void
     {
         $batch = $event->batch;
@@ -26,18 +30,31 @@ final class GenerateCuentaCobroOnBatchConfirm
             return;
         }
 
-        $invoice = BillInvoice::query()->create([
-            'public_number' => 'CC-LOTE-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
-            'affiliate_id' => null,
-            'payer_id' => $payer->id,
-            'tipo' => 'LIQUIDACION_LOTE',
-            'payment_method' => 'CUENTA_COBRO',
-            'total_pesos' => $batch->grand_total,
-            'estado' => 'PENDIENTE_COBRO',
-        ]);
+        $generatesCC = $payer->generates_cuenta_cobro;
+        if (! $generatesCC) {
+            $contract = ServiceContract::query()
+                ->where('payer_id', $payer->id)
+                ->where('status', 'ACTIVO')
+                ->latest('vigencia_start')
+                ->first();
+
+            $generatesCC = $contract?->generates_cuenta_cobro ?? false;
+        }
+
+        if (! $generatesCC) {
+            return;
+        }
+
+        $cuenta = $this->cuentaCobroService->generatePreCuenta(
+            payerId: $payer->id,
+            periodYear: $batch->period_year,
+            periodMonth: $batch->period_month,
+            mode: 'PLENO',
+            batchId: $batch->id,
+        );
 
         $batch->update([
-            'planilla_number' => $invoice->public_number,
+            'planilla_number' => $cuenta->cuenta_number,
         ]);
     }
 }

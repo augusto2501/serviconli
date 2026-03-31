@@ -10,6 +10,7 @@ import FichaPage from './serviconli/vue/pages/FichaPage.vue';
 import AporteIndividualPage from './serviconli/vue/pages/AporteIndividualPage.vue';
 import LiquidacionLotesPage from './serviconli/vue/pages/LiquidacionLotesPage.vue';
 import GenerarPILAPage from './serviconli/vue/pages/GenerarPILAPage.vue';
+import CarteraPage from './serviconli/vue/pages/CarteraPage.vue';
 
 const vuetify = createVuetify({
     components,
@@ -26,6 +27,7 @@ const PAGE_COMPONENT = {
     'aporte-individual': AporteIndividualPage,
     'liquidacion-lotes': LiquidacionLotesPage,
     'generar-pila': GenerarPILAPage,
+    'cartera': CarteraPage,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
