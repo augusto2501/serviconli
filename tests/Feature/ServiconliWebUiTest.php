@@ -25,4 +25,9 @@ class ServiconliWebUiTest extends TestCase
     {
         $this->get('/afiliados/1/ficha')->assertOk()->assertSee('data-affiliate-id="1"', false);
     }
+
+    public function test_aporte_individual_page_returns_ok(): void
+    {
+        $this->get('/afiliados/1/aporte')->assertOk()->assertSee('data-affiliate-id="1"', false);
+    }
 }

@@ -2,16 +2,21 @@
 
 namespace App\Modules\RegulatoryEngine\Services;
 
+use App\Modules\RegulatoryEngine\DTOs\CalculationContext;
 use App\Modules\RegulatoryEngine\DTOs\CalculationInputDTO;
 use App\Modules\RegulatoryEngine\DTOs\CalculationResultDTO;
-use App\Modules\RegulatoryEngine\Enums\SubsystemType;
 use App\Modules\RegulatoryEngine\Exceptions\MissingRegulatoryParameterException;
-use App\Modules\RegulatoryEngine\Models\ContributorType;
 use App\Modules\RegulatoryEngine\Repositories\RegulatoryParameterRepository;
+use App\Modules\RegulatoryEngine\Strategies\StrategyResolver;
 use App\Modules\RegulatoryEngine\ValueObjects\IBC;
 
 /**
- * Orquestador de liquidación PILA. Tarifas desde cfg_*; mora §3.6; solidaridad §3.5.
+ * Orquestador de liquidación PILA — 11 pasos (Sec. 3.1).
+ *
+ * Delega cálculo de subsistemas a Strategy por tipo cotizante (RF-042).
+ * Tarifas desde cfg_regulatory_parameters; mora §8.3; solidaridad §3.5.
+ *
+ * @see DOCUMENTO_RECTOR §3.1, RF-031..RF-044
  */
 final class PILACalculationService
 {
@@ -20,8 +25,96 @@ final class PILACalculationService
         private readonly ?RegulatoryParameterRepository $regulatoryParameters = null,
         private readonly ?MoraInterestService $moraInterest = null,
         private readonly ?SolidarityFundCalculator $solidarityFundCalculator = null,
+        private readonly ?StrategyResolver $strategyResolver = null,
     ) {}
 
+    /**
+     * Cálculo completo usando CalculationContext (nuevo flujo con Strategy).
+     */
+    public function calculateFull(
+        CalculationContext $context,
+        ?string $targetType = null,
+        ?int $targetId = null,
+        int $daysLate = 0,
+    ): CalculationResultDTO {
+        $resolver = $this->strategyResolver ?? new StrategyResolver;
+        $strategy = $resolver->resolve($context->contributorTypeCode);
+        $date = $context->referenceDate;
+
+        $strategyResult = $strategy->calculate($context);
+
+        $ibcSalud = $strategyResult['ibc_salud_pesos'] ?? 0;
+        $healthTotal = $strategyResult['health_total_pesos'] ?? 0;
+        $pensionTotal = $strategyResult['pension_total_pesos'] ?? 0;
+        $arlTotal = $strategyResult['arl_total_pesos'] ?? 0;
+        $ccfTotal = $strategyResult['ccf_total_pesos'] ?? 0;
+        $adminFee = $strategyResult['admin_fee_pesos'] ?? 0;
+
+        // Solidaridad — §3.5
+        $solidarityPesos = 0;
+        $solidarityRatePercent = null;
+        $solidarityMinSmmlv = null;
+        if ($this->regulatoryParameters !== null) {
+            $solCalc = $this->solidarityFundCalculator ?? new SolidarityFundCalculator($this->regulatoryParameters);
+            $sol = $solCalc->compute($ibcSalud, $date);
+            $solidarityPesos = $sol['pesos'];
+            $solidarityRatePercent = $sol['rate_percent'];
+            $solidarityMinSmmlv = $sol['min_smmlv_bracket'];
+        }
+
+        // Paso 9: TotalAportePOS = salud + pensión + ARL + CCF + solidaridad
+        $totalAportePOS = $healthTotal + $pensionTotal + $arlTotal + $ccfTotal + $solidarityPesos;
+
+        // Excepciones operativas de mora
+        $moraExempt = false;
+        $monthlyMoraRate = $this->resolveMonthlyMoraRate($date);
+
+        if ($targetType !== null && $targetId !== null) {
+            $svc = $this->operationalExceptions ?? new OperationalExceptionService;
+            $moraExempt = $svc->isMoraExempt($targetType, $targetId, $date);
+            $dailyOverride = $svc->moraRateOverridePercent($targetType, $targetId, $date);
+            if ($dailyOverride !== null) {
+                $monthlyMoraRate = $dailyOverride * 30;
+            }
+        }
+
+        // Paso 10: Mora — base = TotalAportePOS (NO admin, NO afiliación)
+        $moraSvc = $this->moraInterest ?? new MoraInterestService;
+        $moraInterest = $moraSvc->interestPesos($totalAportePOS, $daysLate, $moraExempt, $monthlyMoraRate);
+
+        // Paso 11: TotalPago = TotalAportePOS + Admin + Mora
+        $totalPago = $totalAportePOS + $adminFee + $moraInterest;
+
+        return new CalculationResultDTO(
+            ibcRoundedPesos: $ibcSalud,
+            subsystemAmountsPesos: [
+                'ibc_salud_pesos' => $ibcSalud,
+                'ibc_pension_pesos' => $strategyResult['ibc_pension_pesos'] ?? $ibcSalud,
+                'health_rate_percent' => $context->healthRatePercent,
+                'pension_rate_percent' => $context->pensionRatePercent,
+                'arl_rate_percent' => $context->arlRatePercent,
+                'ccf_rate_percent' => $context->ccfRatePercent,
+                'health_total_pesos' => $healthTotal,
+                'pension_total_pesos' => $pensionTotal,
+                'arl_total_pesos' => $arlTotal,
+                'ccf_total_pesos' => $ccfTotal,
+                'solidarity_fund_pesos' => $solidarityPesos,
+                'solidarity_rate_percent' => $solidarityRatePercent,
+                'solidarity_min_smmlv_bracket' => $solidarityMinSmmlv,
+                'total_aporte_pos_pesos' => $totalAportePOS,
+                'admin_fee_pesos' => $adminFee,
+                'mora_exempt' => $moraExempt,
+                'mora_monthly_rate_percent' => $monthlyMoraRate,
+                'mora_interest_pesos' => $moraInterest,
+            ],
+            totalSocialSecurityPesos: $totalPago,
+        );
+    }
+
+    /**
+     * Cálculo simplificado (mantiene compatibilidad con API existente).
+     * Usa el DTO original — internamente delega a calculateFull.
+     */
     public function calculate(
         CalculationInputDTO $input,
         ?string $targetType = null,
@@ -29,77 +122,31 @@ final class PILACalculationService
         ?string $onDate = null,
         int $daysLate = 0,
     ): CalculationResultDTO {
-        $ibc = IBC::fromRaw($input->rawIbcPesos)->roundToMillarSuperior();
-        $subsystemAmounts = [];
-        $moraExempt = false;
         $date = $onDate ?? sprintf('%04d-%02d-01', $input->cotizationPeriod->year, $input->cotizationPeriod->month);
-        $healthRatePercent = $this->requiredRate('rates', 'SALUD_TOTAL_PERCENT', $date);
-        $pensionRatePercent = $this->requiredRate('rates', 'PENSION_TOTAL_PERCENT', $date);
-        $arlRatePercent = $this->requiredRate('rates', $this->arlRateKeyForClass($input->arlRiskClass), $date);
-        $ccfRatePercent = $this->ccfRateForContributorType($input->contributorTypeCode, $date);
-        $moraRatePercent = $this->requiredRate('mora', 'DAILY_RATE_PERCENT', $date);
+        $ibc = IBC::fromRaw($input->rawIbcPesos)->roundToMillarSuperior();
 
-        if ($targetType !== null && $targetId !== null) {
-            $service = $this->operationalExceptions ?? new OperationalExceptionService;
+        $healthRate = $this->requiredRate('rates', 'SALUD_TOTAL_PERCENT', $date);
+        $pensionRate = $this->requiredRate('rates', 'PENSION_TOTAL_PERCENT', $date);
+        $arlRate = $this->requiredRate('rates', $this->arlRateKeyForClass($input->arlRiskClass), $date);
+        $ccfRate = $this->ccfRateForContributorType($input->contributorTypeCode, $date);
 
-            $moraExempt = $service->isMoraExempt($targetType, $targetId, $date);
-            $moraRatePercent = $service->moraRateOverridePercent($targetType, $targetId, $date) ?? $moraRatePercent;
-        }
-
-        $moraSvc = $this->moraInterest ?? new MoraInterestService;
-        $moraInterest = $moraSvc->interestPesos($ibc->valueInPesos, $daysLate, $moraExempt, $moraRatePercent);
-
-        $solidarityPesos = 0;
-        $solidarityRatePercent = null;
-        $solidarityMinSmmlv = null;
-        $repo = $this->regulatoryParameters;
-        if ($repo !== null) {
-            $solCalc = $this->solidarityFundCalculator ?? new SolidarityFundCalculator($repo);
-            $sol = $solCalc->compute($ibc->valueInPesos, $date);
-            $solidarityPesos = $sol['pesos'];
-            $solidarityRatePercent = $sol['rate_percent'];
-            $solidarityMinSmmlv = $sol['min_smmlv_bracket'];
-        }
-
-        $healthTotal = $this->subsystemApplies($input->contributorTypeCode, SubsystemType::SALUD)
-            ? $this->percentOf($ibc->valueInPesos, $healthRatePercent)
-            : 0;
-        $pensionTotal = $this->subsystemApplies($input->contributorTypeCode, SubsystemType::PENSION)
-            ? $this->percentOf($ibc->valueInPesos, $pensionRatePercent)
-            : 0;
-        $arlTotal = $this->subsystemApplies($input->contributorTypeCode, SubsystemType::ARL)
-            ? $this->percentOf($ibc->valueInPesos, $arlRatePercent)
-            : 0;
-        $ccfTotal = $this->subsystemApplies($input->contributorTypeCode, SubsystemType::CCF)
-            ? $this->percentOf($ibc->valueInPesos, $ccfRatePercent)
-            : 0;
-        $total = $healthTotal + $pensionTotal + $arlTotal + $ccfTotal + $moraInterest + $solidarityPesos;
-
-        $subsystemAmounts['mora_exempt'] = $moraExempt;
-        $subsystemAmounts['mora_rate_percent'] = $moraRatePercent;
-        $subsystemAmounts['mora_interest_pesos'] = $moraInterest;
-        $subsystemAmounts['health_rate_percent'] = $healthRatePercent;
-        $subsystemAmounts['pension_rate_percent'] = $pensionRatePercent;
-        $subsystemAmounts['arl_rate_percent'] = $arlRatePercent;
-        $subsystemAmounts['health_total_pesos'] = $healthTotal;
-        $subsystemAmounts['pension_total_pesos'] = $pensionTotal;
-        $subsystemAmounts['arl_total_pesos'] = $arlTotal;
-        $subsystemAmounts['ccf_total_pesos'] = $ccfTotal;
-        $subsystemAmounts['ccf_rate_percent'] = $ccfRatePercent;
-        $subsystemAmounts['solidarity_fund_pesos'] = $solidarityPesos;
-        $subsystemAmounts['solidarity_rate_percent'] = $solidarityRatePercent;
-        $subsystemAmounts['solidarity_min_smmlv_bracket'] = $solidarityMinSmmlv;
-
-        return new CalculationResultDTO(
-            ibcRoundedPesos: $ibc->valueInPesos,
-            subsystemAmountsPesos: $subsystemAmounts,
-            totalSocialSecurityPesos: $total,
+        $context = new CalculationContext(
+            salaryPesos: $ibc->valueInPesos,
+            daysEps: 30,
+            daysAfp: 30,
+            daysArl: 30,
+            daysCcf: 30,
+            cotizationPeriod: $input->cotizationPeriod,
+            contributorTypeCode: $input->contributorTypeCode,
+            arlRiskClass: $input->arlRiskClass,
+            healthRatePercent: $healthRate,
+            pensionRatePercent: $pensionRate,
+            arlRatePercent: $arlRate,
+            ccfRatePercent: $ccfRate,
+            referenceDate: $date,
         );
-    }
 
-    private function percentOf(int $base, float $percent): int
-    {
-        return (int) round($base * ($percent / 100));
+        return $this->calculateFull($context, $targetType, $targetId, $daysLate);
     }
 
     private function ccfRateForContributorType(string $contributorTypeCode, string $date): float
@@ -138,24 +185,13 @@ final class PILACalculationService
         return (float) $value;
     }
 
-    private function subsystemApplies(string $contributorTypeCode, SubsystemType $subsystem): bool
+    private function resolveMonthlyMoraRate(string $date): float
     {
-        $contributorType = ContributorType::query()
-            ->where('code', $contributorTypeCode)
-            ->first();
-
-        if ($contributorType === null) {
-            return true;
+        if ($this->regulatoryParameters === null) {
+            return 2.5;
         }
+        $daily = $this->regulatoryParameters->valueAt('mora', 'DAILY_RATE_PERCENT', $date);
 
-        $rules = $contributorType->subsystemsPivot()
-            ->where('subsystem', $subsystem->value)
-            ->get();
-
-        if ($rules->isEmpty()) {
-            return true;
-        }
-
-        return (bool) $rules->contains(static fn ($r): bool => (bool) $r->is_required);
+        return is_numeric($daily) ? (float) $daily * 30 : 2.5;
     }
 }

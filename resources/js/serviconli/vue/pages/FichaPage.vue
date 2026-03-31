@@ -61,7 +61,7 @@ onMounted(() => {
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <v-btn variant="outlined" @click="quickAction">Registrar aporte</v-btn>
+            <v-btn variant="outlined" color="teal-darken-3" :href="`/afiliados/${affiliateId}/aporte`">Registrar aporte</v-btn>
             <v-btn variant="outlined" @click="quickAction">Generar certificado</v-btn>
             <v-btn variant="outlined" @click="quickAction">Ver historial</v-btn>
             <v-btn variant="outlined" @click="quickAction">Registrar novedad</v-btn>

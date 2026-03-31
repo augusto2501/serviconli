@@ -31,14 +31,16 @@ class PILACalculationServiceTest extends TestCase
 
         $result = $service->calculate($dto);
 
+        // IBC redondeado al millar superior (RN-01)
         $this->assertSame(1_751_000, $result->ibcRoundedPesos);
-        $this->assertSame(218_875, $result->subsystemAmountsPesos['health_total_pesos']);
-        $this->assertSame(280_160, $result->subsystemAmountsPesos['pension_total_pesos']);
-        $this->assertSame(9_140, $result->subsystemAmountsPesos['arl_total_pesos']);
-        $this->assertSame(70_040, $result->subsystemAmountsPesos['ccf_total_pesos']);
+        // Aportes con roundLegacy centenar superior (Rector §3.1)
+        $this->assertSame(218_900, $result->subsystemAmountsPesos['health_total_pesos']);
+        $this->assertSame(280_200, $result->subsystemAmountsPesos['pension_total_pesos']);
+        $this->assertSame(9_200, $result->subsystemAmountsPesos['arl_total_pesos']);
+        $this->assertSame(70_100, $result->subsystemAmountsPesos['ccf_total_pesos']);
         $this->assertSame(0, $result->subsystemAmountsPesos['mora_interest_pesos']);
-        $this->assertSame(0.0833, $result->subsystemAmountsPesos['mora_rate_percent']);
-        $this->assertSame(578_215, $result->totalSocialSecurityPesos);
+        $this->assertSame(578_400, $result->subsystemAmountsPesos['total_aporte_pos_pesos']);
+        $this->assertSame(578_400, $result->totalSocialSecurityPesos);
     }
 
     public function test_calculate_computes_default_mora_interest_when_days_late_are_provided(): void
@@ -57,8 +59,11 @@ class PILACalculationServiceTest extends TestCase
 
         $result = $service->calculate($dto, null, null, null, 10);
 
-        $this->assertSame(14_586, $result->subsystemAmountsPesos['mora_interest_pesos']);
-        $this->assertSame(592_801, $result->totalSocialSecurityPesos);
+        // Mora con fórmula Rector §8.3: base=TotalAportePOS(578,400), no IBC
+        // Round((((578400/30) × 0.025) × 10) / 100, 0) × 100 = 4800
+        $this->assertSame(4_800, $result->subsystemAmountsPesos['mora_interest_pesos']);
+        // Total = TotalAportePOS(578400) + admin(0) + mora(4800)
+        $this->assertSame(583_200, $result->totalSocialSecurityPesos);
     }
 
     public function test_calculate_throws_when_required_rate_is_missing(): void
@@ -96,8 +101,10 @@ class PILACalculationServiceTest extends TestCase
 
         $result = $service->calculate($dto);
 
-        $this->assertSame(121_870, $result->subsystemAmountsPesos['arl_total_pesos']);
-        $this->assertSame(690_945, $result->totalSocialSecurityPesos);
+        // ARL clase V: roundLegacy(round(1751000*0.0696,0)) = roundLegacy(121870) = 121900
+        $this->assertSame(121_900, $result->subsystemAmountsPesos['arl_total_pesos']);
+        // Total = 218900+280200+121900+70100 = 691100
+        $this->assertSame(691_100, $result->totalSocialSecurityPesos);
     }
 
     private function seedDefaultRates(array $skip = []): void

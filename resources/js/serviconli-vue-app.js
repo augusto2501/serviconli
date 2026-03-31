@@ -7,6 +7,7 @@ import 'vuetify/styles';
 import LoginPage from './serviconli/vue/pages/LoginPage.vue';
 import MisAfiliadosPage from './serviconli/vue/pages/MisAfiliadosPage.vue';
 import FichaPage from './serviconli/vue/pages/FichaPage.vue';
+import AporteIndividualPage from './serviconli/vue/pages/AporteIndividualPage.vue';
 
 const vuetify = createVuetify({
     components,
@@ -20,6 +21,7 @@ const PAGE_COMPONENT = {
     login: LoginPage,
     'mis-afiliados': MisAfiliadosPage,
     ficha: FichaPage,
+    'aporte-individual': AporteIndividualPage,
 };
 
 document.addEventListener('DOMContentLoaded', () => {

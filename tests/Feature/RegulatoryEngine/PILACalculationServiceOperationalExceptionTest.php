@@ -4,9 +4,6 @@ namespace Tests\Feature\RegulatoryEngine;
 
 use App\Modules\RegulatoryEngine\DTOs\CalculationInputDTO;
 use App\Modules\RegulatoryEngine\Enums\ExceptionType;
-use App\Modules\RegulatoryEngine\Enums\SubsystemType;
-use App\Modules\RegulatoryEngine\Models\ContributorType;
-use App\Modules\RegulatoryEngine\Models\ContributorTypeSubsystem;
 use App\Modules\RegulatoryEngine\Models\OperationalException;
 use App\Modules\RegulatoryEngine\Models\RegulatoryParameter;
 use App\Modules\RegulatoryEngine\Repositories\RegulatoryParameterRepository;
@@ -57,9 +54,9 @@ class PILACalculationServiceOperationalExceptionTest extends TestCase
 
         $this->assertSame(1_751_000, $result->ibcRoundedPesos);
         $this->assertTrue($result->subsystemAmountsPesos['mora_exempt']);
-        $this->assertSame(0.031, $result->subsystemAmountsPesos['mora_rate_percent']);
         $this->assertSame(0, $result->subsystemAmountsPesos['mora_interest_pesos']);
-        $this->assertSame(578_215, $result->totalSocialSecurityPesos);
+        // roundLegacy: total = 218900+280200+9200+70100 = 578400
+        $this->assertSame(578_400, $result->totalSocialSecurityPesos);
     }
 
     public function test_calculation_uses_mora_rate_override_when_not_exempt(): void
@@ -89,9 +86,11 @@ class PILACalculationServiceOperationalExceptionTest extends TestCase
         $result = $service->calculate($dto, 'AFFILIATE', 111, '2026-03-01', 10);
 
         $this->assertFalse($result->subsystemAmountsPesos['mora_exempt']);
-        $this->assertSame(0.05, $result->subsystemAmountsPesos['mora_rate_percent']);
-        $this->assertSame(8_755, $result->subsystemAmountsPesos['mora_interest_pesos']);
-        $this->assertSame(586_970, $result->totalSocialSecurityPesos);
+        // Override daily=0.05 → monthly=1.5%. Mora sobre TotalAportePOS(578400)
+        // Round((((578400/30)×0.015)×10)/100,0)×100 = 2900
+        $this->assertSame(2_900, $result->subsystemAmountsPesos['mora_interest_pesos']);
+        // Total = 578400 + 2900 = 581300
+        $this->assertSame(581_300, $result->totalSocialSecurityPesos);
     }
 
     public function test_calculation_uses_rates_from_cfg_regulatory_parameters_when_repository_is_provided(): void
@@ -128,44 +127,20 @@ class PILACalculationServiceOperationalExceptionTest extends TestCase
 
         $result = $service->calculate($dto, null, null, '2026-03-01', 10);
 
-        $this->assertSame(227_630, $result->subsystemAmountsPesos['health_total_pesos']);
-        $this->assertSame(297_670, $result->subsystemAmountsPesos['pension_total_pesos']);
-        $this->assertSame(17_510, $result->subsystemAmountsPesos['arl_total_pesos']);
-        $this->assertSame(87_550, $result->subsystemAmountsPesos['ccf_total_pesos']);
-        $this->assertSame(17_510, $result->subsystemAmountsPesos['mora_interest_pesos']);
-        $this->assertSame(647_870, $result->totalSocialSecurityPesos);
+        // roundLegacy: 227700, 297700, 17600, 87600
+        $this->assertSame(227_700, $result->subsystemAmountsPesos['health_total_pesos']);
+        $this->assertSame(297_700, $result->subsystemAmountsPesos['pension_total_pesos']);
+        $this->assertSame(17_600, $result->subsystemAmountsPesos['arl_total_pesos']);
+        $this->assertSame(87_600, $result->subsystemAmountsPesos['ccf_total_pesos']);
+        // TotalPOS=630600. Mora: monthly=0.1*30=3.0. Round((((630600/30)×0.03)×10)/100,0)×100=6300
+        $this->assertSame(6_300, $result->subsystemAmountsPesos['mora_interest_pesos']);
+        // Total = 630600 + 6300 = 636900
+        $this->assertSame(636_900, $result->totalSocialSecurityPesos);
     }
 
-    public function test_calculation_respects_subsystem_configuration_for_contributor_type(): void
+    public function test_calculation_uses_strategy_for_contributor_type_57(): void
     {
         $this->seedDefaultRates();
-
-        $type = ContributorType::query()->create([
-            'code' => '57',
-            'name' => 'Contratista',
-            'is_active' => true,
-        ]);
-
-        ContributorTypeSubsystem::query()->create([
-            'contributor_type_id' => $type->id,
-            'subsystem' => SubsystemType::SALUD->value,
-            'is_required' => true,
-        ]);
-        ContributorTypeSubsystem::query()->create([
-            'contributor_type_id' => $type->id,
-            'subsystem' => SubsystemType::PENSION->value,
-            'is_required' => false,
-        ]);
-        ContributorTypeSubsystem::query()->create([
-            'contributor_type_id' => $type->id,
-            'subsystem' => SubsystemType::ARL->value,
-            'is_required' => true,
-        ]);
-        ContributorTypeSubsystem::query()->create([
-            'contributor_type_id' => $type->id,
-            'subsystem' => SubsystemType::CCF->value,
-            'is_required' => false,
-        ]);
 
         $service = new PILACalculationService(
             operationalExceptions: null,
@@ -180,11 +155,14 @@ class PILACalculationServiceOperationalExceptionTest extends TestCase
 
         $result = $service->calculate($dto);
 
-        $this->assertSame(218_875, $result->subsystemAmountsPesos['health_total_pesos']);
-        $this->assertSame(0, $result->subsystemAmountsPesos['pension_total_pesos']);
-        $this->assertSame(9_140, $result->subsystemAmountsPesos['arl_total_pesos']);
-        $this->assertSame(0, $result->subsystemAmountsPesos['ccf_total_pesos']);
-        $this->assertSame(228_015, $result->totalSocialSecurityPesos);
+        // Tipo 57 → IndependienteGeneralStrategy: S+P+ARL+CCF(2%)
+        $this->assertSame(218_900, $result->subsystemAmountsPesos['health_total_pesos']);
+        $this->assertSame(280_200, $result->subsystemAmountsPesos['pension_total_pesos']);
+        $this->assertSame(9_200, $result->subsystemAmountsPesos['arl_total_pesos']);
+        // CCF al 2% para independientes
+        $this->assertSame(35_100, $result->subsystemAmountsPesos['ccf_total_pesos']);
+        // Total = 218900+280200+9200+35100 = 543400
+        $this->assertSame(543_400, $result->totalSocialSecurityPesos);
     }
 
     private function seedDefaultRates(): void
