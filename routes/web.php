@@ -19,4 +19,7 @@ Route::get('/afiliados/{affiliate}/aporte', function (int|string $affiliate) {
     return view('contributions.individual', ['affiliateId' => (int) $affiliate]);
 })->whereNumber('affiliate')->name('contributions.individual');
 
+// Flujo 4 — Liquidación por Lotes
+Route::view('/liquidacion-lotes', 'liquidation.batch')->name('liquidation.batch');
+
 Route::get('/ai/probe', AiProbeController::class);

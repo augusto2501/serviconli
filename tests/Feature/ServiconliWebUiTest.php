@@ -30,4 +30,9 @@ class ServiconliWebUiTest extends TestCase
     {
         $this->get('/afiliados/1/aporte')->assertOk()->assertSee('data-affiliate-id="1"', false);
     }
+
+    public function test_liquidacion_lotes_page_returns_ok(): void
+    {
+        $this->get('/liquidacion-lotes')->assertOk()->assertSee('serviconli-vue-root', false);
+    }
 }

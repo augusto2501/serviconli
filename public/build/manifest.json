@@ -4,7 +4,7 @@
     "name": "chunk"
   },
   "resources/css/app.css": {
-    "file": "assets/app-U85Mtlol.css",
+    "file": "assets/app-DGdD0Kdr.css",
     "name": "app",
     "names": [
       "app.css"
@@ -22,7 +22,7 @@
     ]
   },
   "resources/js/serviconli-vue-app.js": {
-    "file": "assets/serviconli-vue-app-DGpXmfKe.js",
+    "file": "assets/serviconli-vue-app-via2UlhF.js",
     "name": "serviconli-vue-app",
     "src": "resources/js/serviconli-vue-app.js",
     "isEntry": true,

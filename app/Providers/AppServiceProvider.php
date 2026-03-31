@@ -6,7 +6,9 @@ use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\ReentryProcess;
 use App\Modules\Employers\Models\Employer;
+use App\Modules\PILALiquidation\Events\BatchConfirmed;
 use App\Modules\PILALiquidation\Events\ContributionSaved;
+use App\Modules\PILALiquidation\Listeners\GenerateCuentaCobroOnBatchConfirm;
 use App\Modules\PILALiquidation\Listeners\ProcessNoveltiesOnContribution;
 use App\Modules\PILALiquidation\Listeners\UpdateMoraStatusOnPayment;
 use App\Modules\PILALiquidation\Models\PilaLiquidation;
@@ -68,5 +70,6 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(ContributionSaved::class, UpdateMoraStatusOnPayment::class);
         Event::listen(ContributionSaved::class, ProcessNoveltiesOnContribution::class);
+        Event::listen(BatchConfirmed::class, GenerateCuentaCobroOnBatchConfirm::class);
     }
 }
