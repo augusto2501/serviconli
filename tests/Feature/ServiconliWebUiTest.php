@@ -35,4 +35,9 @@ class ServiconliWebUiTest extends TestCase
     {
         $this->get('/liquidacion-lotes')->assertOk()->assertSee('serviconli-vue-root', false);
     }
+
+    public function test_generar_pila_page_returns_ok(): void
+    {
+        $this->get('/generar-pila')->assertOk()->assertSee('serviconli-vue-root', false);
+    }
 }

@@ -9,9 +9,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('pila:generar-planilla {periodo} {--empleador=} {--todos} {--dry-run}', function (): void {
-    $this->info('Stub pila:generar-planilla — período: '.$this->argument('periodo').' (DOCUMENTO_RECTOR).');
-})->purpose('Generar planilla PILA (implementación pendiente).');
+// pila:generar-planilla → implementado en App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand
 
 Artisan::command('pila:transicion-periodo {periodo_anterior}', function (): void {
     $this->info('Stub pila:transicion-periodo — período anterior: '.$this->argument('periodo_anterior').' (DOCUMENTO_RECTOR).');

@@ -2,6 +2,7 @@
 
 use App\Modules\PILALiquidation\Controllers\BatchLiquidationController;
 use App\Modules\PILALiquidation\Controllers\IndividualContributionController;
+use App\Modules\PILALiquidation\Controllers\PILAFileController;
 use App\Modules\PILALiquidation\Controllers\PilaLiquidationController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,3 +28,8 @@ Route::put('/batches/{batchId}/lines/{lineId}', [BatchLiquidationController::cla
 Route::post('/batches/{batchId}/lines/{lineId}/toggle', [BatchLiquidationController::class, 'toggleLine']);
 Route::post('/batches/{batchId}/confirm', [BatchLiquidationController::class, 'confirm']);
 Route::post('/batches/{batchId}/cancel', [BatchLiquidationController::class, 'cancel']);
+
+// Flujo 8 — Generación Archivo PILA
+Route::get('/pila-files', [PILAFileController::class, 'index']);
+Route::post('/pila-files/generate', [PILAFileController::class, 'generate']);
+Route::get('/pila-files/{generationId}/download', [PILAFileController::class, 'download']);

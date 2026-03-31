@@ -22,4 +22,7 @@ Route::get('/afiliados/{affiliate}/aporte', function (int|string $affiliate) {
 // Flujo 4 — Liquidación por Lotes
 Route::view('/liquidacion-lotes', 'liquidation.batch')->name('liquidation.batch');
 
+// Flujo 8 — Generación Archivo PILA
+Route::view('/generar-pila', 'liquidation.pila-file')->name('liquidation.pila-file');
+
 Route::get('/ai/probe', AiProbeController::class);

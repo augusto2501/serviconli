@@ -6,6 +6,7 @@ use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\ReentryProcess;
 use App\Modules\Employers\Models\Employer;
+use App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand;
 use App\Modules\PILALiquidation\Events\BatchConfirmed;
 use App\Modules\PILALiquidation\Events\ContributionSaved;
 use App\Modules\PILALiquidation\Listeners\GenerateCuentaCobroOnBatchConfirm;
@@ -38,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->commands([GenerarPlanillaCommand::class]);
+
         $this->app->singleton(PILACalculationService::class, function ($app) {
             $repo = $app->make(RegulatoryParameterRepository::class);
 
