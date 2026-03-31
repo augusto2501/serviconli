@@ -19,6 +19,7 @@
             <a href="{{ url('/') }}" class="font-serif-svc text-xl font-bold text-stone-900 no-underline">{{ config('app.name') }}</a>
             <nav class="flex flex-wrap items-center gap-4 text-sm font-medium" aria-label="Aplicación">
                 <a href="{{ url('/mis-afiliados') }}" class="text-teal-800 hover:underline">Mis afiliados</a>
+                <a href="{{ url('/cartera') }}" class="text-teal-800 hover:underline">Cartera</a>
                 <a href="{{ route('login') }}" class="text-stone-600 hover:text-teal-800">Iniciar sesión</a>
             </nav>
         </div>
