@@ -45,4 +45,9 @@ class ServiconliWebUiTest extends TestCase
     {
         $this->get('/cartera')->assertOk()->assertSee('serviconli-vue-root', false);
     }
+
+    public function test_cuadre_caja_page_returns_ok(): void
+    {
+        $this->get('/cuadre-caja')->assertOk()->assertSee('serviconli-vue-root', false);
+    }
 }

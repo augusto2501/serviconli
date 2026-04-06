@@ -28,4 +28,7 @@ Route::view('/generar-pila', 'liquidation.pila-file')->name('liquidation.pila-fi
 // Flujos 5/6/7 — Cartera y Facturación
 Route::view('/cartera', 'billing.cartera')->name('billing.cartera');
 
+// Flujo 10 — Cuadre de caja
+Route::view('/cuadre-caja', 'cash.reconciliation')->name('cash.reconciliation');
+
 Route::get('/ai/probe', AiProbeController::class);

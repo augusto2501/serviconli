@@ -20,6 +20,7 @@
             <nav class="flex flex-wrap items-center gap-4 text-sm font-medium" aria-label="Aplicación">
                 <a href="{{ url('/mis-afiliados') }}" class="text-teal-800 hover:underline">Mis afiliados</a>
                 <a href="{{ url('/cartera') }}" class="text-teal-800 hover:underline">Cartera</a>
+                <a href="{{ url('/cuadre-caja') }}" class="text-teal-800 hover:underline">Cuadre caja</a>
                 <a href="{{ route('login') }}" class="text-stone-600 hover:text-teal-800">Iniciar sesión</a>
             </nav>
         </div>
