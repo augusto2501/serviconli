@@ -120,13 +120,13 @@ Conectar los hooks pendientes (requiere Sprint I-1 y I-2):
 Referencias: RF-010, LISTADO §1.1
 
 **Definition of Done Sprint I:**
-- [ ] CRUD asesores con flag comisión y créditos
-- [ ] Cálculo automático comisión al afiliar
-- [ ] Consignaciones con validación duplicada
-- [ ] CxC a asesores funcional
-- [ ] PostEnrollmentCompletionService completo (salvo WhatsApp)
-- [ ] `php artisan test` sin regresiones
-- [ ] CUMPLIMIENTO_RF_MATRIX.md actualizado
+- [x] CRUD asesores con flag comisión y créditos
+- [x] Cálculo automático comisión al afiliar
+- [x] Consignaciones con validación duplicada
+- [x] CxC a asesores funcional
+- [x] PostEnrollmentCompletionService completo (salvo WhatsApp)
+- [x] `php artisan test` sin regresiones
+- [x] CUMPLIMIENTO_RF_MATRIX.md actualizado
 
 ---
 

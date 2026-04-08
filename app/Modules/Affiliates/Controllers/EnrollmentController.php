@@ -11,6 +11,7 @@ use App\Modules\Affiliates\Models\Beneficiary;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\GdprConsentRecord;
 use App\Modules\Affiliates\Models\Person;
+use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Services\EnrollmentBillingPreviewService;
 use App\Modules\Affiliates\Services\PostEnrollmentCompletionService;
 use App\Modules\Affiliates\Services\RadicadoNumberGenerator;
@@ -137,7 +138,23 @@ final class EnrollmentController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
             'raw_ibc_pesos' => ['required', 'integer', 'min:1', 'max:999999999999'],
             'arl_risk_class' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'advisor_id' => ['nullable', 'integer', 'exists:sec_advisors,id'],
         ]);
+
+        if (($validated['payment_method'] ?? '') === 'CREDITO') {
+            $aid = isset($validated['advisor_id']) ? (int) $validated['advisor_id'] : 0;
+            if ($aid < 1) {
+                throw ValidationException::withMessages([
+                    'advisor_id' => 'El medio CREDITO requiere un asesor autorizado.',
+                ]);
+            }
+            $advisor = Advisor::query()->find($aid);
+            if ($advisor === null || ! $advisor->authorizes_credits) {
+                throw ValidationException::withMessages([
+                    'advisor_id' => 'El asesor debe existir y estar autorizado para ventas a crédito.',
+                ]);
+            }
+        }
 
         $arlRisk = (int) ($validated['arl_risk_class'] ?? 1);
         $preview = app(EnrollmentBillingPreviewService::class)->preview(

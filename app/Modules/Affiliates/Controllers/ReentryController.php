@@ -7,7 +7,9 @@ namespace App\Modules\Affiliates\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\Person;
+use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Models\ReentryProcess;
+use App\Modules\Affiliates\Services\PostEnrollmentCompletionService;
 use App\Modules\Affiliations\Models\AffiliatePayer;
 use App\Modules\Affiliations\Models\SocialSecurityProfile;
 use App\Modules\Billing\Models\BillInvoice;
@@ -164,6 +166,7 @@ final class ReentryController extends Controller
             'payer_id' => ['required', 'integer', 'exists:afl_payers,id'],
             'contributor_type_code' => ['required', 'string', 'max:16'],
             'start_date' => ['required', 'date'],
+            'advisor_id' => ['nullable', 'integer', 'exists:sec_advisors,id'],
         ]);
 
         $process->update([
@@ -202,6 +205,22 @@ final class ReentryController extends Controller
         }
 
         $invoiceTotal = (int) ($validated['invoice_total_pesos'] ?? 0);
+
+        $s3Pre = $process->step3_payload ?? [];
+        if (($validated['payment_method'] ?? '') === 'CREDITO') {
+            $aid = (int) ($s3Pre['advisor_id'] ?? 0);
+            if ($aid < 1) {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'CREDITO requiere asesor en el paso 3 (advisor_id).',
+                ]);
+            }
+            $advisor = Advisor::query()->find($aid);
+            if ($advisor === null || ! $advisor->authorizes_credits) {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'El asesor debe existir y estar autorizado para ventas a crédito.',
+                ]);
+            }
+        }
 
         $affiliateId = $process->affiliate_id;
 
@@ -258,6 +277,7 @@ final class ReentryController extends Controller
                 'start_date' => $s3['start_date'],
                 'end_date' => null,
                 'contributor_type_code' => $s3['contributor_type_code'],
+                'advisor_id' => isset($s3['advisor_id']) ? (int) $s3['advisor_id'] : null,
             ]);
 
             $afiliadoId = AffiliateStatus::query()->where('code', 'AFILIADO')->value('id');
@@ -286,6 +306,15 @@ final class ReentryController extends Controller
         });
 
         $process = $process->fresh();
+        $invoice = BillInvoice::query()->findOrFail((int) $process->bill_invoice_id);
+        $affiliate = Affiliate::query()->findOrFail((int) $process->affiliate_id);
+
+        app(PostEnrollmentCompletionService::class)->handleReentry(
+            $process,
+            $affiliate,
+            $invoice,
+            $validated['payment_method'],
+        );
 
         return response()->json([
             'processId' => $process->id,

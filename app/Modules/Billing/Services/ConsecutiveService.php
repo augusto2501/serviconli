@@ -36,12 +36,14 @@ final class ConsecutiveService
         $table = match ($prefix) {
             'RC' => 'bill_invoices',
             'CC' => 'bill_cuentas_cobro',
+            'CE' => 'bill_advisor_commissions',
             default => null,
         };
 
         $column = match ($prefix) {
             'RC' => 'public_number',
             'CC' => 'cuenta_number',
+            'CE' => 'public_number',
             default => null,
         };
 

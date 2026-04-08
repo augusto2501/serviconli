@@ -4,6 +4,7 @@ namespace App\Modules\Affiliations\Models;
 
 // DOCUMENTO_RECTOR §4 — afl_affiliate_payer
 
+use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Models\Affiliate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,5 +48,11 @@ class AffiliatePayer extends Model
     public function payer(): BelongsTo
     {
         return $this->belongsTo(Payer::class, 'payer_id');
+    }
+
+    /** @return BelongsTo<Advisor, $this> */
+    public function advisor(): BelongsTo
+    {
+        return $this->belongsTo(Advisor::class, 'advisor_id');
     }
 }

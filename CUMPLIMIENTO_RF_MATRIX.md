@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: cierre de brechas + Sprint G/H parcial (abril 2026)
+# Actualizado: Sprint I — asesores, comisiones CE, terceros mínimo (abril 2026)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-001 | Hecho (parcial) | Wizard backend 6 pasos: `POST /api/enrollment/step-1..5` + `confirm`. Persistencia en `wf_enrollment_processes`. Pendiente: RF-010 hooks completos (PDF, WhatsApp, comisión) |
+| RF-001 | Hecho (parcial) | Wizard backend 6 pasos: `POST /api/enrollment/step-1..5` + `confirm`. Persistencia en `wf_enrollment_processes`. Comisión asesor opcional vía `advisor_id` en paso 5 + `PostEnrollmentCompletionService`. Pendiente: PDF contrato, WhatsApp |
 | RF-002 | Hecho | `AffiliateClientType` enum: SERVICONLI / INDEPENDIENTE / DEPENDIENTE / COLOMBIANO_EXTERIOR |
 | RF-003 | Hecho (parcial) | Catálogo `cfg_contributor_types` con 7 tipos activos + 17 adicionales. Motor soporta todos. Sin UI admin CRUD |
 | RF-004 | Hecho (parcial) | Subtipos 11 y 12 en `afl_affiliates.subtipo`; lógica en strategies. Sin UI de gestión |
@@ -18,7 +18,7 @@
 | RF-007 | Hecho | `is_foreigner` y `is_type_51` en `wf_enrollment_processes` paso 1 |
 | RF-008 | Hecho | `RadicadoNumberGenerator`: `radicado_yearly_sequences` + lock concurrencia; formato `RAD-{YYYY}-{NNNNNN}` |
 | RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user-agent, `accepted_at`. Pendiente: gestión derechos titular |
-| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService` como punto de enganche. Pendiente: PDF contrato, comisión asesor (depende Sprint I), tercero, WhatsApp (depende Sprint J) |
+| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService`: comisión nueva (`AdvisorCommissionService` + CE), hook tercero stub (`ThirdPartyProvisioningService`), reingreso `handleReentry`. Pendiente: PDF contrato, WhatsApp (Sprint J) |
 | RF-011 | Hecho | `EnrollmentBillingPreviewService`: doble cálculo (primer mes proporcional + mensual 30 días) vía `PILACalculationService` |
 | RF-012 | Hecho | `GET /api/reentry/eligible`: busca estados RETIRADO/INACTIVO por documento |
 | RF-013 | Hecho | `POST /api/reentry/step-1..3`: actualiza persona, entidades SS, pagador |
@@ -170,8 +170,8 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-099 | No iniciado | Módulo `Advisors/` solo scaffolded. Sprint I |
-| RF-100 | No iniciado | Cálculo automático comisiones. Sprint I |
+| RF-099 | Hecho | `sec_advisors`; CRUD `GET/POST/PUT/DELETE /api/advisors`; `commission_new` / `commission_recurring`; `authorizes_credits`; paso 5 enrollment `advisor_id` opcional; paso 3 reingreso `advisor_id` en `afl_affiliate_payer` |
+| RF-100 | Hecho | `bill_advisor_commissions` con `CE-{YYYY}-{NNNN}` (`ConsecutiveService` prefijo CE); tipos NEW/RECURRING; estados CALCULADA → PAGADA/ANULADA (`PATCH /api/advisor-commissions/{id}`); cálculo al confirmar enrollment y al reingreso |
 
 ---
 
@@ -179,8 +179,8 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-101 | No iniciado | Módulo `ThirdParties/` solo scaffolded. Sprint I |
-| RF-102 | No iniciado | CxC a asesores con medio CRÉDITO. Sprint I |
+| RF-101 | Hecho (parcial) | `POST /api/third-parties/bank-deposits` → `tp_bank_deposits` (LOCAL/NACIONAL); advertencia `duplicateReferenceWarning` si referencia repetida; excedente vía `expected_amount_pesos` + `surplusPesos` en respuesta |
+| RF-102 | Hecho | `tp_advisor_receivables`; alta en reingreso con `payment_method` CREDITO y asesor con `authorizes_credits`; `GET/PATCH /api/third-parties/advisor-receivables` (PENDIENTE → PAGADA/ANULADA) |
 
 ---
 
