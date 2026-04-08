@@ -23,7 +23,8 @@ return new class extends Migration
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
 
-            $table->index(['affiliate_id', 'period_year', 'period_month']);
+            // Nombre explícito corto (MySQL máx. 64 caracteres en identificadores)
+            $table->index(['affiliate_id', 'period_year', 'period_month'], 'afl_mi_ct_aff_period_idx');
         });
     }
 
