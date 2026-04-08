@@ -10,6 +10,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Deploy previo: la tabla pudo crearse antes de fallar el índice; migración no quedó en `migrations`.
+        if (Schema::hasTable('afl_multi_income_contracts')) {
+            return;
+        }
+
         Schema::create('afl_multi_income_contracts', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('affiliate_id')->constrained('afl_affiliates')->cascadeOnDelete();
