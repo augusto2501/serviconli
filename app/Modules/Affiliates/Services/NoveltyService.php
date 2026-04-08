@@ -2,11 +2,13 @@
 
 namespace App\Modules\Affiliates\Services;
 
+use App\Modules\Affiliates\Events\ARLRetirementReminderRequested;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\Novelty;
 use App\Modules\Affiliations\Services\SocialSecurityProfileService;
 use App\Modules\RegulatoryEngine\ValueObjects\Periodo;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Event;
 
 /**
  * Gestión de novedades PILA — RN-06, RF-061..RF-066.
@@ -143,6 +145,10 @@ final class NoveltyService
             'PENSION_ONLY', 'ARL_ONLY' => null, // Sigue ACTIVO
             default => null,
         };
+
+        if ($this->requiresARLRetirementAlert($novelty)) {
+            Event::dispatch(new ARLRetirementReminderRequested($novelty));
+        }
     }
 
     /**

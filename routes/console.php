@@ -9,11 +9,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// pila:generar-planilla → implementado en App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand
-
-Artisan::command('pila:transicion-periodo {periodo_anterior}', function (): void {
-    $this->info('Stub pila:transicion-periodo — período anterior: '.$this->argument('periodo_anterior').' (DOCUMENTO_RECTOR).');
-})->purpose('Transición de período PILA (implementación pendiente).');
+// pila:generar-planilla → App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand
+// pila:transicion-periodo → App\Modules\Affiliates\Commands\TransicionPeriodoCommand
+// mora:detect → App\Modules\Affiliates\Commands\MoraDetectCommand
 
 Artisan::command('etl:migrate-excel {path}', function (): void {
     $this->info('Stub etl:migrate-excel — ruta: '.$this->argument('path').' (SKILL: mapeo 1:1, sin columnas inventadas).');

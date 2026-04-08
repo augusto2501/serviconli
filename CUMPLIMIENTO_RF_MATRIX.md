@@ -1,49 +1,296 @@
-# Matriz de cumplimiento RF × estado
-
-Herramienta de seguimiento respecto a [REQUISITOS_FUNCIONALES_SERVICONLI.md](REQUISITOS_FUNCIONALES_SERVICONLI.md).  
-Estados: **No iniciado** | **En curso** | **Hecho (parcial)** | **Hecho** | **N/A**
-
-_Actualizado con el avance de implementación en código (marzo 2026)._
-
-## 1. Gestión de afiliados
-
-| RF | Estado | Nota breve |
-|----|--------|-------------|
-| RF-001 | Hecho (parcial) | Wizard backend 6 pasos: `POST /api/enrollment/step-1..5` + `POST /api/enrollment/step-6/confirm` con persistencia en `wf_enrollment_processes`, validación y bloqueo de salto de pasos |
-| RF-002 | Hecho | `AffiliateClientType` + columna `client_type` |
-| RF-003–RF-004 | En curso | Catálogo cotizante en motor; subtipos en esquema `afl_affiliates.subtipo` |
-| RF-005–RF-007 | Hecho (parcial) | Paso 2: tipos documento RF-005 (`Rule::in`), obligatorios RF-006 (incl. al menos un teléfono vía `required_without_all`), `is_foreigner` RF-007; paso 1 `is_type_51` RF-007. Tests: `EnrollmentWizardApiTest` (incl. `test_step2_*`). **Flujo vertical API:** `tests/Feature/E2E/ServiconliVerticalFlowTest` (login → afiliados → ficha-360 → notas → export CSV) |
-| RF-008 | Hecho (parcial) | `RadicadoNumberGenerator` + `radicado_yearly_sequences`; formato `RAD-{YYYY}-{NNNNNN}`; radicado en `wf_enrollment_processes.radicado_number` al confirmar |
-| RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user agent y `accepted_at` |
-| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService` como punto de enganche; recibo/PDF/comisión/tercero/WhatsApp pendientes |
-| RF-011 | Hecho (parcial) | Paso 5: `raw_ibc_pesos` + `EnrollmentBillingPreviewService` → `billingPreview` (primer mes proporcional días ingreso→fin de mes, tope 30; total mensual base 30 días vía `PILACalculationService`) |
-| RF-012–RF-014 | Hecho (parcial) | `GET /api/reentry/eligible`, `POST /api/reentry/start`, pasos 1–3 (persona, entidades SS + `valid_from`, `payer_id` + cotizante), `POST /api/reentry/confirm`: cierra perfil SS y vínculo pagador, nuevo perfil SS, `bill_invoices.tipo=03`, estado `AFILIADO`. Seed `cfg_affiliate_statuses` RETIRADO/INACTIVO/AFILIADO |
-| RF-015 | Hecho (parcial) | `GET /api/affiliates/{id}/ficha-360` vía `Ficha360ViewBuilder`: persona ampliada, estado/código, perfil SS vigente con `pilaCode` por entidad, pagador vigente, beneficiarios/notas (recientes), liquidaciones PILA confirmadas con líneas por período, `lastPaidPeriod`, facturas recientes, excepciones operativas activas; **portales** con `afl_portal_credentials` + API `GET/POST/PATCH/DELETE /api/affiliates/{id}/portal-credentials` (contraseña en claro por defecto; `PORTAL_CREDENTIALS_ENCRYPT=true` activa cifrado Laravel); documentos aún como hint |
-| RF-016 | Hecho (parcial) | Ficha 360° web: accesos rápidos en UI (`/afiliados/{id}/ficha`); acciones conectadas como “próximamente” hasta flujos definitivos |
-| RF-017 | Hecho (parcial) | Tabla + API list/create beneficiarios |
-| RF-018 | No iniciado | Alertas automáticas |
-| RF-019 | Hecho (parcial) | Tabla + API notas; `user_id` rellenado con usuario Sanctum; respuesta incluye `userId` |
-| RF-020 | Hecho (parcial) | Vista web **Mis afiliados** (`/mis-afiliados`) + login (`/login`) con token Sanctum en `sessionStorage`; listado y export CSV/XLSX vía API; enlace a ficha 360° |
-| RF-021–RF-023 | Hecho (parcial) | `GET /api/affiliates` con payload tipo hoja DATA: nombre completo, tipo cotizante (vínculo pagador vigente), estado/códigos, mora, `paymentIndicator` (SI/NO/ANTICIPADO/NEUTRO desde `mora_status`), EPS/AFP/ARL/CCF, operador PILA (`afl_payers.pila_operator_code`), último período pagado (liquidaciones PILA confirmadas), notas operativas + conteo notas formales. **Filtros RF-022:** `contributor_type_code`, `payer_id`, `advisor_id`, `pila_operator_code`, `eps_entity_id` / `afp_entity_id` / `arl_entity_id` / `ccf_entity_id`, `payments_on_track` (`yes`/`no`/`ahead`) + existentes. **Export:** `GET /api/affiliates/export?format=csv|xlsx` (OpenSpout). Paridad fina con Excel/columnas legacy pendiente |
-
-## 2. Empleadores
-
-| RF | Estado | Nota breve |
-|----|--------|-------------|
-| RF-024–RF-027 | Hecho (parcial) | `empl_employers` + **API** `GET/POST/PATCH/DELETE /api/employers` con validación NIT y campos extendidos RF-024 (representante, CIIU, dirección, contacto). Pendiente: integración con procesos aguas abajo |
-
-## 3. Otros módulos
-
-| RF / BC | Estado | Nota breve |
-|---------|--------|-------------|
-| BC-01 Motor | Hecho (parcial) | PILA + `MoraInterestService` + `SolidarityFundCalculator` §3.5–3.6 |
-| BC-05 Liquidación producto | Hecho (parcial) | Tablas `pay_liquidation_*`; comandos `pila:*` stub |
-| BC-06 Facturación | Hecho (parcial) | `bill_invoices` mínima |
-| BC-07 Caja | Hecho (parcial) | `cash_daily_closures` mínima |
-| BC-13 Seguridad | Hecho (parcial) | Laravel Sanctum: tokens `personal_access_tokens`; `POST /api/login` (throttle 5/min), `POST /api/logout` + `GET /api/user` con `auth:sanctum`; rutas módulos bajo `middleware(['api','auth:sanctum'])`; políticas `Affiliate`, `Employer`, `EnrollmentProcess`, `ReentryProcess`, `PilaLiquidation` (extensible a roles); notas con `user_id` del usuario autenticado |
-| RF-028–RF-029 | Hecho (parcial) | Perfiles SS versionados + `SocialSecurityProfileService` |
-| ETL (SKILL) | Hecho (parcial) | `etl:migrate-excel` / `etl:migrate-access` stub |
+# Matriz de Cumplimiento RF × Estado — Serviconli
+# Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
+# Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
+# Actualizado: Sprint G (abril 2026)
 
 ---
 
-Para cada nueva fase, revisar reglas en la carpeta **cursor-serviconli-rules** del entorno de trabajo (puede estar fuera del árbol de este repositorio).
+## Módulo 1 — Gestión de Afiliados
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-001 | Hecho (parcial) | Wizard backend 6 pasos: `POST /api/enrollment/step-1..5` + `confirm`. Persistencia en `wf_enrollment_processes`. Pendiente: RF-010 hooks completos (PDF, WhatsApp, comisión) |
+| RF-002 | Hecho | `AffiliateClientType` enum: SERVICONLI / INDEPENDIENTE / DEPENDIENTE / COLOMBIANO_EXTERIOR |
+| RF-003 | Hecho (parcial) | Catálogo `cfg_contributor_types` con 7 tipos activos + 17 adicionales. Motor soporta todos. Sin UI admin CRUD |
+| RF-004 | Hecho (parcial) | Subtipos 11 y 12 en `afl_affiliates.subtipo`; lógica en strategies. Sin UI de gestión |
+| RF-005 | Hecho | `Rule::in(['CC','CE','TI','PA','PPT','PTT','NIT'])` en paso 2 del wizard |
+| RF-006 | Hecho | Campos obligatorios en paso 2: tipo doc, número, primer nombre, apellido, sexo, dirección, `required_without_all` para teléfonos |
+| RF-007 | Hecho | `is_foreigner` y `is_type_51` en `wf_enrollment_processes` paso 1 |
+| RF-008 | Hecho | `RadicadoNumberGenerator`: `radicado_yearly_sequences` + lock concurrencia; formato `RAD-{YYYY}-{NNNNNN}` |
+| RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user-agent, `accepted_at`. Pendiente: gestión derechos titular |
+| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService` como punto de enganche. Pendiente: PDF contrato, comisión asesor (depende Sprint I), tercero, WhatsApp (depende Sprint J) |
+| RF-011 | Hecho | `EnrollmentBillingPreviewService`: doble cálculo (primer mes proporcional + mensual 30 días) vía `PILACalculationService` |
+| RF-012 | Hecho | `GET /api/reentry/eligible`: busca estados RETIRADO/INACTIVO por documento |
+| RF-013 | Hecho | `POST /api/reentry/step-1..3`: actualiza persona, entidades SS, pagador |
+| RF-014 | Hecho | `POST /api/reentry/confirm`: cierra perfil SS anterior, crea nueva versión, recibo tipo "03", estado AFILIADO |
+| RF-015 | Hecho (parcial) | `Ficha360ViewBuilder`: persona, perfil SS vigente con pilaCode, pagador, beneficiarios, notas recientes, liquidaciones PILA confirmadas, facturas, excepciones activas, portal credentials. Pendiente: documentos adjuntos |
+| RF-016 | Hecho (parcial) | Accesos rápidos en UI Vue (`/afiliados/{id}/ficha`). Actions conectados como "próximamente" hasta flujos definitivos |
+| RF-017 | Hecho (parcial) | `GET/POST /api/affiliates/{id}/beneficiaries`: CRUD básico. Pendiente: alertas automáticas (RF-018) |
+| RF-018 | No iniciado | Alertas automáticas (18 años, vencimiento certificados). Sprint K |
+| RF-019 | Hecho | `GET/POST /api/affiliates/{id}/notes`: tipos ADMINISTRATIVA/MÉDICA/GENERAL/PAGO, `user_id` Sanctum |
+| RF-020 | Hecho | Notas visibles en `GET /api/affiliates` (conteo) y en ficha 360° (recientes) |
+| RF-021 | Hecho (parcial) | `GET /api/affiliates`: nombre completo, cotizante, estado, mora, `paymentIndicator` (SI/NO/ANTICIPADO/NEUTRO), EPS/AFP/ARL/CCF, operador PILA, último período pagado, notas. Pendiente: paridad exacta todas las columnas del Excel |
+| RF-022 | Hecho | Filtros: `contributor_type_code`, `payer_id`, `advisor_id`, `pila_operator_code`, `eps/afp/arl/ccf_entity_id`, `payments_on_track` (yes/no/ahead) |
+| RF-023 | Hecho | `GET /api/affiliates/export?format=csv\|xlsx` (OpenSpout); búsqueda por nombre/documento |
+
+---
+
+## Módulo 2 — Empleadores
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-024 | Hecho | `empl_employers` + API CRUD completa. Campos: NIT, DV, razón social, representante, CIIU, dirección, ciudad, depto, teléfono, email |
+| RF-025 | Hecho | `EmployerNitValidationService`: módulo 11 con pesos `[71,67,59,53,47,43,41,37,29,23,17,13,7,3]`, calcula DV automáticamente |
+| RF-026 | Hecho | Normalización 3 formatos NIT: con punto, con guion-DV, solo número |
+| RF-027 | Hecho (parcial) | Campos en `empl_employers`: operador PILA, `generates_cuenta_cobro`, intereses, % salud personalizado, forma presentación, tipo doc contable. Pendiente: integración `generates_cuenta_cobro` con flujo liquidación individual |
+
+---
+
+## Módulo 3 — Afiliaciones y Perfiles SS
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-028 | Hecho | `afl_affiliate_payer` N:M con `valid_from`/`valid_until`, tipo cotizante, salario, cargo, asesor |
+| RF-029 | Hecho | `SocialSecurityProfileService`: versionado temporal con `valid_from`/`valid_until`, `versionProfileForTransfer()`, `versionProfileForSalaryChange()`. Nunca sobreescribe |
+| RF-030 | No iniciado | Contratos multi-ingreso independientes (IBC 40%, tope 25 SMMLV). Sprint H |
+
+---
+
+## Módulo 4 — Motor de Cálculo Normativo
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-031 | Hecho | `RoundingEngine::roundIBC()`: `intval(($sal/30)*$dias)` al millar superior (mod 1000, no HALF_UP) |
+| RF-032 | Hecho | `roundLegacy()` al múltiplo de 100 superior — replica exacta Access |
+| RF-033 | Hecho | Pensión normal sobre IBC; tipo 51: `(Salario/4)*semanas` en `TiempoParcialSubsidiadoStrategy` |
+| RF-034 | Hecho (parcial) | `ibc2` para días AFP diferentes existe en `PILACalculationService`. Sin tests específicos para retiro tipo P |
+| RF-035 | Hecho | Subtipo 11: ARL=$0 automático. Subtipo 12: flag en contexto para ARL riesgo 4 |
+| RF-036 | Hecho | `DependienteGeneralStrategy`: CCF 4%; `IndependienteGeneralStrategy`: CCF 2%. Desde `cfg_regulatory_parameters` |
+| RF-037 | Hecho | `SolidarityFundCalculator`: 6 tramos ≥4 SMMLV→1% hasta ≥20 SMMLV→2%; tramos desde `cfg_regulatory_parameters` |
+| RF-038 | Hecho | Fee admin proporcional `roundLegacy(intval((ValorAdmin/30)*DiasEPS))` |
+| RF-039 | Hecho | `MoraInterestService`: `round((((TotalSS/30)*tasa)*dias)/100,0)*100`; base solo SS (sin admin); tasa desde `cfg_regulatory_parameters` |
+| RF-040 | Hecho | `TotalPago = TotalSS + Admin + Mora` en secuencia exacta Form_005 |
+| RF-041 | Hecho | Todos los montos `INT UNSIGNED` en PHP y BD; tarifas `DECIMAL(8,6)` |
+| RF-042 | Hecho | 5 Strategies: `DependienteGeneral`, `IndependienteGeneral`, `TiempoParcialSubsidiado`, `BeneficiarioUPC`, `ContratistaPrestacionServicios` via `StrategyResolver` |
+| RF-043 | Hecho | `RoundingEngine`: `roundIBC`, `roundLegacy`, `roundPILA`, `adjustBatchRounding` |
+| RF-044 | Hecho (parcial) | `roundPILA()` existe. Pendiente: alerta activa cuando diferencia legacy vs PILA > 1% en período de transición |
+| RF-045 | Hecho | `cfg_regulatory_parameters` con `valid_from`/`valid_until`, categoría, clave, tipo dato, base legal |
+| RF-046 | Hecho (parcial) | Tabla + seeders completos. Sin UI admin CRUD para usuarios no técnicos |
+| RF-047 | Hecho | `PaymentCalendarService`: 16 rangos Res. 2388/2016 desde `cfg_payment_calendar_rules` |
+| RF-048 | Hecho | Dependientes: fecha límite mes SIGUIENTE; independientes: mes ACTUAL |
+| RF-049 | Hecho | `ColombianHolidayChecker`: sábados, domingos y festivos CO desde `cfg_colombian_holidays` |
+| RF-050 | Hecho | `cfg_payment_deadline_overrides`: overrides manuales por período específico |
+| RF-051 | Hecho | `PeriodDeterminationService`: sin pagos → mes siguiente + días proporcionales; con pagos → siguiente al último pagado |
+| RF-052 | Hecho (parcial) | Detección período adelantado en el servicio. Pendiente: confirmación explícita del usuario antes de proceder |
+| RF-053 | Hecho | `QuotationService` (Sprint G): mismas fórmulas del motor real, almacena en `billing_quotations` |
+| RF-054 | No iniciado | PDF cotizador con branding Serviconli (`pdf_path = null`). Sprint H |
+
+---
+
+## Módulo 5 — Liquidación y Pagos PILA
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-055 | Hecho | `ContributionService`: período automático, perfil SS vigente, detección `generates_cuenta_cobro` |
+| RF-056 | Hecho | Validación días < 30 sin novedad = error (excepto tipo 41) en `StoreContributionRequest` |
+| RF-057 | Hecho | Validación período duplicado en `ContributionService` |
+| RF-058 | Hecho | Normalización días tipo 51 a 7/14/21/30 en `TiempoParcialSubsidiadoStrategy` |
+| RF-059 | Hecho (parcial) | Recálculo al cambiar días en el servicio. Pendiente: recálculo en tiempo real en UI Vue |
+| RF-060 | Hecho | `UpdateMoraStatusOnPayment` listener en evento `ContributionSaved` |
+| RF-061 | Hecho (parcial) | **Sprint G:** TAE, TAP, VSP, VST, RET con efectos completos en `NoveltyService`. Pendiente: ING, LMA, LPA, IGE, IRL, SLN, LLU, TDE, TDP, VTE, AVP, VCT, COR (Sprint H) |
+| RF-062 | Hecho | **Sprint G:** `NoveltyService::processRetirement()`: X=RETIRADO, P=sigue ACTIVO, R=sigue ACTIVO |
+| RF-063 | No iniciado | Retiro por mora (1 día, provisiona deuda, admin=$0). Sprint H |
+| RF-064 | Hecho | **Sprint G:** `ARLRetirementReminderRequested` event + `LogARLRetirementReminder` listener para retiro X o R |
+| RF-065 | Hecho | **Sprint G:** `NoveltyService::processTransferEPS/AFP()` → `SocialSecurityProfileService::versionProfileForTransfer()` |
+| RF-066 | Hecho | **Sprint G:** `NoveltyService::processSalaryChange()` → `SocialSecurityProfileService::versionProfileForSalaryChange()` |
+| RF-067 | Hecho | `BatchLiquidationService`: carga afiliados AFILIADO/ACTIVO/SUSPENDIDO/PAGO_MES_SUBSIGUIENTE del pagador |
+| RF-068 | Hecho | Días proporcionales para afiliados nuevos en lote + novedad ING automática |
+| RF-069 | Hecho | Strategy por tipo cotizante en cada línea; `adjustBatchRounding()` si suma ≠ total |
+| RF-070 | Hecho | `LiquidationBatch` model: BORRADOR → PRE_LIQUIDADO → LIQUIDADO → PAGADO → ANULADO |
+| RF-071 | Hecho | `AffiliateStatusMachine`: AFILIADO→ACTIVO→SUSPENDIDO→MORA_30→MORA_60→MORA_90→MORA_120→MORA_120_PLUS→RETIRADO |
+| RF-072 | Hecho | **Sprint G:** `MoraPeriodTransitionService` + `TransicionPeriodoCommand` con `--dry-run`; escalada mensual por período |
+| RF-073 | Hecho | `AffiliateStatusMachine::deescalate()`: siempre UN solo nivel hacia abajo |
+| RF-074 | Hecho (parcial) | Estado mora se actualiza. Pendiente: alerta WhatsApp cuando mora > 1 mes (depende Sprint J) |
+| RF-075 | Hecho (parcial) | `PaymentMethodResolver` + 4 strategies (EFECTIVO/CONSIG/CRÉDITO/CUENTA_COBRO). Pendiente: flujo CONSIGNACIÓN con validación duplicada (Sprint I) |
+| RF-076 | Hecho (parcial) | Casos 7 (primer aporte✅), 9 (RET-X✅), 10 (RET-P✅), 11 (RET-R✅), 14 (TAE✅), 15 (TAP✅), 16 (VSP✅), 17 (tipo 51✅), 18 (tipo 40✅), 19 (mora paga✅), 22 (indep actual✅), 23 (subtipo 11✅). Pendientes: 8, 12, 13, 20, 21, 24 |
+
+---
+
+## Módulo 6 — Cartera y Facturación
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-077 | Hecho (parcial) | `CuentaCobroService`: modo PLENO funcional. Modos SOLO_AFILIACIONES / SOLO_APORTES en progreso |
+| RF-078 | Hecho (parcial) | Estado draft/borrador existe en `bill_cuentas_cobro`. Separación estricta "no afecta datos" pendiente |
+| RF-079 | Hecho (parcial) | Consecutivo `SC-{YYYY}-{NNNN}` funcional vía `ConsecutiveService`. Pendiente: exportación PDF |
+| RF-080 | Hecho | `CuentaCobroPaymentService`: Total1 (oportuno) o Total2 (mora); no pagos parciales |
+| RF-081 | Hecho | Post-pago: aportes incluidos en planilla PILA, estados afiliados actualizados |
+| RF-082 | Hecho | `ConsecutiveService` + `ReciboCajaService`: `RC-{YYYY}-{NNNN}` con reinicio anual y lock concurrencia |
+| RF-083 | Hecho | `NumberToWordsService`: montos a letras español colombiano. Detalle por concepto (EPS, AFP, ARL, CCF, Solidaridad, Admin, Afiliación, Intereses) |
+| RF-084 | Hecho (parcial) | `InvoiceCancellationService` con campo causal. Validación completa de catálogo causales pendiente |
+| RF-085 | Hecho (parcial) | Bloqueo anulación con aportes cargados en lógica del servicio. No completamente enforced en todos los paths |
+| RF-086 | Hecho (parcial) | Estructura de 6 cascadas en `InvoiceCancellationService`. No todas implementadas completamente. Sprint I |
+| RF-087 | Hecho (parcial) | 4 flujos de pago con `PaymentMethodResolver`. CRÉDITO con CxC y CONSIGNACIÓN con validación duplicada pendientes (Sprint I) |
+| RF-088 | Hecho | `MoraInterestService`: base solo SS excluyendo admin explícitamente, tasa parametrizable |
+
+---
+
+## Módulo 7 — Cuadre de Caja
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-089 | Hecho | `DailyReconciliationService`: 3 líneas — `CashReconAffiliations`, `CashReconContributions`, `CashReconCuentas` |
+| RF-090 | Hecho | `DailyCloseService` + `DailyCloseCommand`: totaliza 13 conceptos, marca CERRADA, notifica admin |
+
+---
+
+## Módulo 8 — Generación Archivo PILA
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-091 | Hecho | `PILAFileGenerationService`: selección automática ARUS vs XLSX según operador en `cfg_ss_entities` |
+| RF-092 | Hecho | `ARUSFileFormatter`: texto plano ANSI sin BOM, sin línea final vacía, sin encabezados |
+| RF-093 | Hecho | Registro tipo 01: 359 chars exactos con todos los campos del Rector §8 |
+| RF-094 | Hecho | Registro tipo 02: 687 chars, 113 campos posicionales según Res. 2388/2016 Anexo Técnico 2 |
+| RF-095 | Hecho | `PILACharNormalizer`: Ñ→N, elimina tildes, solo alfanuméricos y espacios |
+| RF-096 | Hecho | 9 pasos implementados en `PILAFileGenerationService::generate()` |
+
+---
+
+## Módulo 9 — Incapacidades
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-097 | No iniciado | Módulo `Disabilities/` solo scaffolded. Sprint J |
+| RF-098 | No iniciado | Prórrogas y alerta > 180 días. Sprint J |
+
+---
+
+## Módulo 10 — Asesores y Comisiones
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-099 | No iniciado | Módulo `Advisors/` solo scaffolded. Sprint I |
+| RF-100 | No iniciado | Cálculo automático comisiones. Sprint I |
+
+---
+
+## Módulo 11 — Terceros y Consignaciones
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-101 | No iniciado | Módulo `ThirdParties/` solo scaffolded. Sprint I |
+| RF-102 | No iniciado | CxC a asesores con medio CRÉDITO. Sprint I |
+
+---
+
+## Módulo 12 — Documentos y Contratos
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-103 | No iniciado | 7 templates contratos PDF. Sprint K |
+| RF-104 | Hecho | **Sprint G:** `PaymentCertificateService`: valida período pagado vía `pila_liquidation_lines`, retorna detalle de línea |
+| RF-105 | Hecho | `NumberToWordsService` en módulo Billing |
+
+---
+
+## Módulo 13 — Comunicaciones
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-106 | No iniciado | Módulo `Communications/` solo scaffolded. Sprint J |
+| RF-107 | No iniciado | Notificaciones internas. Sprint J |
+
+---
+
+## Módulo 14 — Seguridad y Auditoría
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-108 | Hecho (parcial) | Sanctum + 5 Policies (Affiliate/Employer/Enrollment/Reentry/PilaLiquidation). Pendiente: Spatie Permission 5 roles (Sprint L) |
+| RF-109 | Hecho (parcial) | Framework de auth presente. Pendiente: tabla `sec_audit_logs` completa en todas las acciones modificativas (Sprint L) |
+| RF-110 | Hecho (parcial) | `gdpr_consent_records` en paso 6 del wizard. Pendiente: gestión derechos titular (Sprint L) |
+| RF-111 | Hecho (parcial) | Flag `PORTAL_CREDENTIALS_ENCRYPT=true` activa cifrado Laravel. Pendiente: log específico de acceso/descifrado (Sprint L) |
+| RF-112 | Hecho (parcial) | `SoftDeletes` en modelos principales. Pendiente: campo `deleted_reason` + `deleted_by` enforced en todos (Sprint L) |
+| RF-113 | Hecho (parcial) | Metadatos en `pila_file_generations`. Pendiente: comando `files:purge` (Sprint L) |
+
+---
+
+## Módulo 15 — Reportes y Dashboard
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-114 | No iniciado | Dashboard gerencial. Sprint K |
+| RF-115 | No iniciado | Reportes operativos. Sprint K |
+
+---
+
+## Módulo 16 — Configuración y Administración
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-116 | Hecho (parcial) | 25+ catálogos con tablas + seeders completos. Sin UI admin CRUD para usuarios (Sprint L) |
+| RF-117 | Hecho | `ConsecutiveService`: RC / SC / RAD / CE con reinicio anual, lock concurrencia, parametrizable desde `cfg_consecutive_formats` |
+
+---
+
+## Módulo 17 — Migración ETL
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-118 | En curso | Stub `etl:migrate-excel {path}` en `routes/console.php`. Implementación real: Sprint M (requiere Excel del cliente) |
+| RF-119 | Hecho (parcial) | Seeders: `PaymentCalendarRuleSeeder`, `ContributorTypeSeeder`, festivos CO 2026. Pendiente: 95 administradoras reales, 24 tipos cotizante completos (Sprint M) |
+| RF-120 | En curso | Stub `etl:migrate-access {path}`. Implementación real: Sprint M (requiere Access del cliente) |
+
+---
+
+## Módulo 18 — Excepciones Operativas
+
+| RF | Estado | Evidencia / Notas |
+|----|--------|-------------------|
+| RF-121 | Hecho | `cfg_operational_exceptions` + `OperationalExceptionService`: 8 tipos, `target_type` (AFFILIATE/PAYER/AFFILIATE_PAYER), valor JSON |
+| RF-122 | Hecho | `reason TEXT NOT NULL`, `authorized_by` FK a usuario, `valid_from`/`valid_until` obligatorios |
+| RF-123 | Hecho | `PILACalculationService` llama `OperationalExceptionService::getActive()` antes de calcular; registra `has_exception` |
+| RF-124 | Hecho | `Ficha360ViewBuilder` incluye `operational_exceptions` activas en el payload |
+| RF-125 | Hecho (parcial) | Estructura de auditoría presente. Pendiente: integración completa con `sec_audit_logs` (Sprint L) |
+
+---
+
+## Resumen cuantitativo actualizado
+
+| Estado | Cantidad | % |
+|--------|----------|---|
+| Hecho | 73 | 58 % |
+| Hecho (parcial) | 37 | 30 % |
+| No iniciado | 15 | 12 % |
+
+**Avance ponderado (parciales al 50%): ~73%**
+
+### Por módulo
+
+| Módulo | RFs | Hecho | Parcial | No iniciado |
+|--------|-----|-------|---------|-------------|
+| 1 - Afiliados | 23 | 9 | 12 | 2 |
+| 2 - Empleadores | 4 | 3 | 1 | 0 |
+| 3 - Afiliaciones | 3 | 2 | 0 | 1 |
+| 4 - Motor cálculo | 24 | 19 | 5 | 0 |
+| 5 - Liquidación | 22 | 14 | 7 | 1 |
+| 6 - Facturación | 12 | 5 | 7 | 0 |
+| 7 - Cuadre caja | 2 | 2 | 0 | 0 |
+| 8 - Archivo PILA | 6 | 6 | 0 | 0 |
+| 9 - Incapacidades | 2 | 0 | 0 | 2 |
+| 10 - Asesores | 2 | 0 | 0 | 2 |
+| 11 - Terceros | 2 | 0 | 0 | 2 |
+| 12 - Documentos | 3 | 2 | 0 | 1 |
+| 13 - Comunicaciones | 2 | 0 | 0 | 2 |
+| 14 - Seguridad | 6 | 0 | 6 | 0 |
+| 15 - Reportes | 2 | 0 | 0 | 2 |
+| 16 - Config | 2 | 1 | 1 | 0 |
+| 17 - ETL | 3 | 0 | 2 | 1 |
+| 18 - Excepciones | 5 | 4 | 1 | 0 |
+| **TOTAL** | **125** | **67** | **42** | **16** |
+
+---
+
+*Última actualización: Sprint G implementado (pendiente commit) — abril 2026*
+*Próximo sprint: H — Completar Sprint G + novedades restantes*

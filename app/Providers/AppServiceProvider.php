@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Modules\Affiliates\Commands\MoraDetectCommand;
+use App\Modules\Affiliates\Commands\TransicionPeriodoCommand;
+use App\Modules\Affiliates\Events\ARLRetirementReminderRequested;
+use App\Modules\Affiliates\Listeners\LogARLRetirementReminder;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\ReentryProcess;
-use App\Modules\Employers\Models\Employer;
 use App\Modules\CashReconciliation\Commands\DailyCloseCommand;
+use App\Modules\Employers\Models\Employer;
 use App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand;
 use App\Modules\PILALiquidation\Events\BatchConfirmed;
 use App\Modules\PILALiquidation\Events\ContributionSaved;
@@ -43,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
         $this->commands([
             GenerarPlanillaCommand::class,
             DailyCloseCommand::class,
+            TransicionPeriodoCommand::class,
+            MoraDetectCommand::class,
         ]);
 
         $this->app->singleton(PILACalculationService::class, function ($app) {
@@ -78,5 +84,6 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ContributionSaved::class, UpdateMoraStatusOnPayment::class);
         Event::listen(ContributionSaved::class, ProcessNoveltiesOnContribution::class);
         Event::listen(BatchConfirmed::class, GenerateCuentaCobroOnBatchConfirm::class);
+        Event::listen(ARLRetirementReminderRequested::class, LogARLRetirementReminder::class);
     }
 }
