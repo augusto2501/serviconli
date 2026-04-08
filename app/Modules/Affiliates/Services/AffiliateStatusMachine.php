@@ -2,6 +2,7 @@
 
 namespace App\Modules\Affiliates\Services;
 
+use App\Modules\Affiliates\Events\MoraBeneficiaryAlertNeeded;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\RegulatoryEngine\Models\AffiliateStatus;
 use InvalidArgumentException;
@@ -122,9 +123,7 @@ final class AffiliateStatusMachine
      */
     public function requiresBeneficiaryAlert(Affiliate $affiliate): bool
     {
-        $code = $this->currentStatusCode($affiliate);
-
-        return in_array($code, ['MORA_60', 'MORA_90', 'MORA_120', 'MORA_120_PLUS'], true);
+        return $this->isInBeneficiaryAlertTier($this->currentStatusCode($affiliate));
     }
 
     /**
@@ -146,6 +145,8 @@ final class AffiliateStatusMachine
 
     private function transitionTo(Affiliate $affiliate, string $statusCode): void
     {
+        $previousCode = $this->currentStatusCode($affiliate);
+
         $status = AffiliateStatus::query()->where('code', $statusCode)->first();
 
         if ($status === null) {
@@ -156,6 +157,16 @@ final class AffiliateStatusMachine
         $affiliate->mora_status = $this->moraStatusFromCode($statusCode);
         $affiliate->save();
         $affiliate->load('status');
+
+        $newCode = $this->currentStatusCode($affiliate);
+        if (! $this->isInBeneficiaryAlertTier($previousCode) && $this->isInBeneficiaryAlertTier($newCode)) {
+            MoraBeneficiaryAlertNeeded::dispatch($affiliate->fresh(['status', 'person']));
+        }
+    }
+
+    private function isInBeneficiaryAlertTier(string $code): bool
+    {
+        return in_array($code, ['MORA_60', 'MORA_90', 'MORA_120', 'MORA_120_PLUS'], true);
     }
 
     private function moraStatusFromCode(string $code): string

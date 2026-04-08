@@ -160,12 +160,13 @@ Cuando mora > 1 mes: evento → listener → WhatsApp al afiliado (D.780/2016).
 Referencias: RF-074, LISTADO §5.4
 
 **Definition of Done Sprint J:**
-- [ ] Registro incapacidades EPS/ARL con CIE-10
-- [ ] Prórrogas con alerta > 180 días
-- [ ] WhatsApp funcional con log de envíos
-- [ ] Notificaciones internas por usuario
-- [ ] Alertas mora conectadas con WhatsApp
-- [ ] `php artisan test` sin regresiones
+- [x] Registro incapacidades EPS/ARL con CIE-10
+- [x] Prórrogas con alerta > 180 días
+- [x] WhatsApp funcional con log de envíos
+- [x] Notificaciones internas por usuario
+- [x] Alertas mora conectadas con WhatsApp
+- [x] `php artisan test` sin regresiones
+- [x] CUMPLIMIENTO_RF_MATRIX.md actualizado
 
 ---
 

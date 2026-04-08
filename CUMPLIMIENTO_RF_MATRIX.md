@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Sprint I — asesores, comisiones CE, terceros mínimo (abril 2026)
+# Actualizado: Sprint J — incapacidades, WhatsApp/log, notificaciones, mora→WA (abril 2026)
 
 ---
 
@@ -18,7 +18,7 @@
 | RF-007 | Hecho | `is_foreigner` y `is_type_51` en `wf_enrollment_processes` paso 1 |
 | RF-008 | Hecho | `RadicadoNumberGenerator`: `radicado_yearly_sequences` + lock concurrencia; formato `RAD-{YYYY}-{NNNNNN}` |
 | RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user-agent, `accepted_at`. Pendiente: gestión derechos titular |
-| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService`: comisión nueva (`AdvisorCommissionService` + CE), hook tercero stub (`ThirdPartyProvisioningService`), reingreso `handleReentry`. Pendiente: PDF contrato, WhatsApp (Sprint J) |
+| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService`: comisión nueva, tercero stub, WhatsApp `welcome` al cerrar enrollment y `confirmation` al reingreso (`WhatsAppOutboundService` → `comm_whatsapp_logs`). Pendiente: PDF contrato |
 | RF-011 | Hecho | `EnrollmentBillingPreviewService`: doble cálculo (primer mes proporcional + mensual 30 días) vía `PILACalculationService` |
 | RF-012 | Hecho | `GET /api/reentry/eligible`: busca estados RETIRADO/INACTIVO por documento |
 | RF-013 | Hecho | `POST /api/reentry/step-1..3`: actualiza persona, entidades SS, pagador |
@@ -110,7 +110,7 @@
 | RF-071 | Hecho | `AffiliateStatusMachine`: AFILIADO→ACTIVO→SUSPENDIDO→MORA_30→MORA_60→MORA_90→MORA_120→MORA_120_PLUS→RETIRADO |
 | RF-072 | Hecho | `MoraPeriodTransitionService` + `pila:transicion-periodo` / `mora:detect`; programación `bootstrap/app.php` (`schedule:run`, env `SCHEDULE_*`) |
 | RF-073 | Hecho | `AffiliateStatusMachine::deescalate()`: siempre UN solo nivel hacia abajo |
-| RF-074 | Hecho (parcial) | Estado mora se actualiza. Pendiente: alerta WhatsApp cuando mora > 1 mes (depende Sprint J) |
+| RF-074 | Hecho | Al pasar a nivel alerta beneficiarios (MORA_60+ desde debajo), evento `MoraBeneficiaryAlertNeeded` → `SendMoraBeneficiaryWhatsApp` → `comm_whatsapp_logs` (Twilio si hay credenciales, si no `provider=log` estado sent) |
 | RF-075 | Hecho (parcial) | `PaymentMethodResolver` + 4 strategies (EFECTIVO/CONSIG/CRÉDITO/CUENTA_COBRO). Pendiente: flujo CONSIGNACIÓN con validación duplicada (Sprint I) |
 | RF-076 | Hecho (parcial) | Casos 7 (primer aporte✅), 9 (RET-X✅), 10 (RET-P✅), 11 (RET-R✅), 14 (TAE✅), 15 (TAP✅), 16 (VSP✅), 17 (tipo 51✅), 18 (tipo 40✅), 19 (mora paga✅), 22 (indep actual✅), 23 (subtipo 11✅). Pendientes: 8, 12, 13, 20, 21, 24 |
 
@@ -161,8 +161,8 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-097 | No iniciado | Módulo `Disabilities/` solo scaffolded. Sprint J |
-| RF-098 | No iniciado | Prórrogas y alerta > 180 días. Sprint J |
+| RF-097 | Hecho | `dis_affiliate_disabilities`: EPS_GENERAL/ARL_LABOR, `subtype_code`, `cfg_diagnosis_cie10`, fechas, `submitted_documents` JSON; API anidada `/api/affiliates/{id}/disabilities` |
+| RF-098 | Hecho | `dis_disability_extensions`; `DisabilityDayCalculator` acumula días corridos; `over_180_alert` cuando total > 180 |
 
 ---
 
@@ -198,8 +198,8 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-106 | No iniciado | Módulo `Communications/` solo scaffolded. Sprint J |
-| RF-107 | No iniciado | Notificaciones internas. Sprint J |
+| RF-106 | Hecho | `comm_whatsapp_logs`; `WhatsAppOutboundService` plantillas (welcome, payment_reminder, mora_beneficiary_alert, confirmation); Twilio HTTP opcional (`config/services.php` twilio) |
+| RF-107 | Hecho | `comm_notifications`; `GET /api/communications/notifications`, `PATCH .../notifications/{id}` marca leída; política por `user_id` |
 
 ---
 

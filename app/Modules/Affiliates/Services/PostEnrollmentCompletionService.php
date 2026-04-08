@@ -9,12 +9,14 @@ use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\ReentryProcess;
 use App\Modules\Billing\Models\BillInvoice;
+use App\Modules\Communications\Services\WhatsAppOutboundService;
 
 final class PostEnrollmentCompletionService
 {
     public function __construct(
         private readonly AdvisorCommissionService $advisorCommissionService,
         private readonly ThirdPartyProvisioningService $thirdPartyProvisioningService,
+        private readonly WhatsAppOutboundService $whatsAppOutboundService,
     ) {}
 
     /**
@@ -24,7 +26,10 @@ final class PostEnrollmentCompletionService
     {
         $this->advisorCommissionService->recordNewAffiliation($process, $affiliate);
         $this->thirdPartyProvisioningService->ensureForAffiliate($affiliate);
-        $this->dispatchWelcomeWhatsAppStub($affiliate);
+        $affiliate->loadMissing('person');
+        $this->whatsAppOutboundService->sendTemplate($affiliate, 'welcome', [
+            'name' => (string) ($affiliate->person?->first_name ?? 'afiliado'),
+        ]);
     }
 
     public function handleReentry(
@@ -35,12 +40,9 @@ final class PostEnrollmentCompletionService
     ): void {
         $this->advisorCommissionService->recordReentry($process, $affiliate, $invoice, $paymentMethod);
         $this->thirdPartyProvisioningService->ensureForAffiliate($affiliate);
-        $this->dispatchWelcomeWhatsAppStub($affiliate);
-    }
-
-    private function dispatchWelcomeWhatsAppStub(Affiliate $affiliate): void
-    {
-        // RF-010 / Sprint J-2 — integrar canal WhatsApp cuando exista el módulo Communications.
-        unset($affiliate);
+        $affiliate->loadMissing('person');
+        $this->whatsAppOutboundService->sendTemplate($affiliate, 'confirmation', [
+            'name' => (string) ($affiliate->person?->first_name ?? 'afiliado'),
+        ]);
     }
 }

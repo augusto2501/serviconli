@@ -38,6 +38,10 @@ class ProjectSchemaMigrationsTest extends TestCase
             'bill_advisor_commissions',
             'tp_bank_deposits',
             'tp_advisor_receivables',
+            'dis_affiliate_disabilities',
+            'dis_disability_extensions',
+            'comm_whatsapp_logs',
+            'comm_notifications',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Falta tabla {$table}");
         }

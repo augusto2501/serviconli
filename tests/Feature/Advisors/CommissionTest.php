@@ -9,6 +9,7 @@ use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\Person;
 use App\Modules\Affiliates\Services\PostEnrollmentCompletionService;
+use App\Modules\Communications\Models\WhatsappLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -51,6 +52,13 @@ class CommissionTest extends TestCase
         ]);
 
         app(PostEnrollmentCompletionService::class)->handle($process, $affiliate);
+
+        $this->assertTrue(
+            WhatsappLog::query()
+                ->where('affiliate_id', $affiliate->id)
+                ->where('template_code', 'welcome')
+                ->exists()
+        );
 
         $this->assertSame(1, AdvisorCommission::query()->count());
         $row = AdvisorCommission::query()->first();
