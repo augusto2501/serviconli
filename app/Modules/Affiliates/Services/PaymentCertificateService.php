@@ -5,6 +5,8 @@ namespace App\Modules\Affiliates\Services;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\PILALiquidation\Enums\PilaLiquidationStatus;
 use App\Modules\PILALiquidation\Models\PilaLiquidationLine;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Certificado de pago por período — RN-22.
@@ -59,5 +61,49 @@ final class PaymentCertificateService
             ] : null,
             'message' => 'Período con aporte registrado en PILA confirmada.',
         ];
+    }
+
+    /**
+     * RN-22: PDF del certificado — usar tras comprobar {@see forPeriod} con `paid === true`.
+     *
+     * @param  array{period: array{year: int, month: int}, paid: bool, line: array<string, mixed>|null, message: string}  $certificateData
+     */
+    public function downloadPdf(Affiliate $affiliate, array $certificateData): StreamedResponse
+    {
+        if (! $certificateData['paid'] || $certificateData['line'] === null) {
+            throw new \InvalidArgumentException('Certificado PDF solo con PILA confirmada para el período.');
+        }
+
+        $data = $certificateData;
+        $affiliate->loadMissing('person');
+        $person = $affiliate->person;
+        $personName = trim(implode(' ', array_filter([
+            $person?->first_name,
+            $person?->second_name,
+            $person?->first_surname,
+            $person?->second_surname,
+        ])));
+
+        $documentNumber = trim((string) ($person?->document_type ?? '').' '.(string) ($person?->document_number ?? ''));
+
+        $pdf = Pdf::loadView('pdf.payment-certificate', [
+            'period' => $data['period'],
+            'line' => $data['line'],
+            'message' => $data['message'],
+            'personName' => $personName !== '' ? $personName : 'Afiliado #'.$affiliate->id,
+            'documentNumber' => $documentNumber,
+        ])->setPaper('a4', 'portrait');
+
+        $y = $data['period']['year'];
+        $m = $data['period']['month'];
+        $filename = sprintf('certificado-pago-%s-%04d-%02d.pdf', $affiliate->id, $y, $m);
+
+        return response()->streamDownload(
+            static function () use ($pdf): void {
+                echo $pdf->output();
+            },
+            $filename,
+            ['Content-Type' => 'application/pdf'],
+        );
     }
 }

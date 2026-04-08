@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\ApiExceptionRenderer;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,6 +14,21 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function (Schedule $schedule): void {
+        $tz = env('SCHEDULE_TIMEZONE', config('app.timezone', 'America/Bogota'));
+
+        $schedule->command('daily:close')
+            ->dailyAt(env('SCHEDULE_DAILY_CLOSE_AT', '23:00'))
+            ->timezone($tz);
+
+        $schedule->command('mora:detect')
+            ->dailyAt(env('SCHEDULE_MORA_DETECT_AT', '08:00'))
+            ->timezone($tz);
+
+        $schedule->command('pila:transicion-periodo')
+            ->monthlyOn((int) env('SCHEDULE_PILA_TRANSICION_DAY', 1), env('SCHEDULE_PILA_TRANSICION_AT', '02:00'))
+            ->timezone($tz);
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })

@@ -12,6 +12,10 @@ Artisan::command('inspire', function () {
 // pila:generar-planilla → App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand
 // pila:transicion-periodo → App\Modules\Affiliates\Commands\TransicionPeriodoCommand
 // mora:detect → App\Modules\Affiliates\Commands\MoraDetectCommand
+//
+// Programación: bootstrap/app.php → withSchedule(). En producción: * * * * * php artisan schedule:run
+// Variables: SCHEDULE_TIMEZONE, SCHEDULE_DAILY_CLOSE_AT, SCHEDULE_MORA_DETECT_AT,
+// SCHEDULE_PILA_TRANSICION_DAY, SCHEDULE_PILA_TRANSICION_AT
 
 Artisan::command('etl:migrate-excel {path}', function (): void {
     $this->info('Stub etl:migrate-excel — ruta: '.$this->argument('path').' (SKILL: mapeo 1:1, sin columnas inventadas).');

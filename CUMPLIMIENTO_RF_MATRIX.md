@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Sprint G (abril 2026)
+# Actualizado: cierre de brechas + Sprint G/H parcial (abril 2026)
 
 ---
 
@@ -42,7 +42,7 @@
 | RF-024 | Hecho | `empl_employers` + API CRUD completa. Campos: NIT, DV, razón social, representante, CIIU, dirección, ciudad, depto, teléfono, email |
 | RF-025 | Hecho | `EmployerNitValidationService`: módulo 11 con pesos `[71,67,59,53,47,43,41,37,29,23,17,13,7,3]`, calcula DV automáticamente |
 | RF-026 | Hecho | Normalización 3 formatos NIT: con punto, con guion-DV, solo número |
-| RF-027 | Hecho (parcial) | Campos en `empl_employers`: operador PILA, `generates_cuenta_cobro`, intereses, % salud personalizado, forma presentación, tipo doc contable. Pendiente: integración `generates_cuenta_cobro` con flujo liquidación individual |
+| RF-027 | Hecho | `generates_cuenta_cobro` en pagador y en `service_contracts`; RN-08: `GenerateCuentaCobroOnBatchConfirm` genera pre-cuenta al confirmar lote si aplica |
 
 ---
 
@@ -52,7 +52,7 @@
 |----|--------|-------------------|
 | RF-028 | Hecho | `afl_affiliate_payer` N:M con `valid_from`/`valid_until`, tipo cotizante, salario, cargo, asesor |
 | RF-029 | Hecho | `SocialSecurityProfileService`: versionado temporal con `valid_from`/`valid_until`, `versionProfileForTransfer()`, `versionProfileForSalaryChange()`. Nunca sobreescribe |
-| RF-030 | No iniciado | Contratos multi-ingreso independientes (IBC 40%, tope 25 SMMLV). Sprint H |
+| RF-030 | Hecho (parcial) | `afl_multi_income_contracts` + `MultiIncomeContractService` (40% ingreso, tope 25 SMMLV). API `POST /api/affiliates/{id}/multi-income-contracts`. Pendiente: usar IBC consolidado como input único en liquidación individual desde UI |
 
 ---
 
@@ -83,7 +83,7 @@
 | RF-051 | Hecho | `PeriodDeterminationService`: sin pagos → mes siguiente + días proporcionales; con pagos → siguiente al último pagado |
 | RF-052 | Hecho (parcial) | Detección período adelantado en el servicio. Pendiente: confirmación explícita del usuario antes de proceder |
 | RF-053 | Hecho | `QuotationService` (Sprint G): mismas fórmulas del motor real, almacena en `billing_quotations` |
-| RF-054 | No iniciado | PDF cotizador con branding Serviconli (`pdf_path = null`). Sprint H |
+| RF-054 | Hecho | `QuotationService::generatePdf`, vista `resources/views/pdf/quotation.blade.php`, `bill_quotations.pdf_path`, `barryvdh/laravel-dompdf` |
 
 ---
 
@@ -97,9 +97,9 @@
 | RF-058 | Hecho | Normalización días tipo 51 a 7/14/21/30 en `TiempoParcialSubsidiadoStrategy` |
 | RF-059 | Hecho (parcial) | Recálculo al cambiar días en el servicio. Pendiente: recálculo en tiempo real en UI Vue |
 | RF-060 | Hecho | `UpdateMoraStatusOnPayment` listener en evento `ContributionSaved` |
-| RF-061 | Hecho (parcial) | **Sprint G:** TAE, TAP, VSP, VST, RET con efectos completos en `NoveltyService`. Pendiente: ING, LMA, LPA, IGE, IRL, SLN, LLU, TDE, TDP, VTE, AVP, VCT, COR (Sprint H) |
-| RF-062 | Hecho | **Sprint G:** `NoveltyService::processRetirement()`: X=RETIRADO, P=sigue ACTIVO, R=sigue ACTIVO |
-| RF-063 | No iniciado | Retiro por mora (1 día, provisiona deuda, admin=$0). Sprint H |
+| RF-061 | Hecho | `NoveltyService`: 18 códigos; efectos perfil para ING, TAE/TDE, TAP/TDP, VSP/VST, VTE, VCT, RET; resto solo registro para liquidación; validación ING+TAE/TDE |
+| RF-062 | Hecho | `NoveltyService::processRetirement()`: X=RETIRADO, P=sigue ACTIVO, R=sigue ACTIVO |
+| RF-063 | Hecho (parcial) | Causal `MORA_EN_APORTE` → retiro TOTAL forzado; pendiente provisión contable explícita de deuda y reglas admin $0 en Billing |
 | RF-064 | Hecho | **Sprint G:** `ARLRetirementReminderRequested` event + `LogARLRetirementReminder` listener para retiro X o R |
 | RF-065 | Hecho | **Sprint G:** `NoveltyService::processTransferEPS/AFP()` → `SocialSecurityProfileService::versionProfileForTransfer()` |
 | RF-066 | Hecho | **Sprint G:** `NoveltyService::processSalaryChange()` → `SocialSecurityProfileService::versionProfileForSalaryChange()` |
@@ -108,7 +108,7 @@
 | RF-069 | Hecho | Strategy por tipo cotizante en cada línea; `adjustBatchRounding()` si suma ≠ total |
 | RF-070 | Hecho | `LiquidationBatch` model: BORRADOR → PRE_LIQUIDADO → LIQUIDADO → PAGADO → ANULADO |
 | RF-071 | Hecho | `AffiliateStatusMachine`: AFILIADO→ACTIVO→SUSPENDIDO→MORA_30→MORA_60→MORA_90→MORA_120→MORA_120_PLUS→RETIRADO |
-| RF-072 | Hecho | **Sprint G:** `MoraPeriodTransitionService` + `TransicionPeriodoCommand` con `--dry-run`; escalada mensual por período |
+| RF-072 | Hecho | `MoraPeriodTransitionService` + `pila:transicion-periodo` / `mora:detect`; programación `bootstrap/app.php` (`schedule:run`, env `SCHEDULE_*`) |
 | RF-073 | Hecho | `AffiliateStatusMachine::deescalate()`: siempre UN solo nivel hacia abajo |
 | RF-074 | Hecho (parcial) | Estado mora se actualiza. Pendiente: alerta WhatsApp cuando mora > 1 mes (depende Sprint J) |
 | RF-075 | Hecho (parcial) | `PaymentMethodResolver` + 4 strategies (EFECTIVO/CONSIG/CRÉDITO/CUENTA_COBRO). Pendiente: flujo CONSIGNACIÓN con validación duplicada (Sprint I) |
@@ -120,7 +120,7 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-077 | Hecho (parcial) | `CuentaCobroService`: modo PLENO funcional. Modos SOLO_AFILIACIONES / SOLO_APORTES en progreso |
+| RF-077 | Hecho | `CuentaCobroService`: modos PLENO, SOLO_APORTES, SOLO_AFILIACIONES (`includeAportes` / `includeAdmin`) |
 | RF-078 | Hecho (parcial) | Estado draft/borrador existe en `bill_cuentas_cobro`. Separación estricta "no afecta datos" pendiente |
 | RF-079 | Hecho (parcial) | Consecutivo `SC-{YYYY}-{NNNN}` funcional vía `ConsecutiveService`. Pendiente: exportación PDF |
 | RF-080 | Hecho | `CuentaCobroPaymentService`: Total1 (oportuno) o Total2 (mora); no pagos parciales |
@@ -189,7 +189,7 @@
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
 | RF-103 | No iniciado | 7 templates contratos PDF. Sprint K |
-| RF-104 | Hecho | **Sprint G:** `PaymentCertificateService`: valida período pagado vía `pila_liquidation_lines`, retorna detalle de línea |
+| RF-104 | Hecho | `PaymentCertificateService` + JSON `GET .../payment-certificate` + PDF `GET .../payment-certificate/pdf` (`resources/views/pdf/payment-certificate.blade.php`) |
 | RF-105 | Hecho | `NumberToWordsService` en módulo Billing |
 
 ---
@@ -260,37 +260,37 @@
 
 | Estado | Cantidad | % |
 |--------|----------|---|
-| Hecho | 73 | 58 % |
-| Hecho (parcial) | 37 | 30 % |
+| Hecho | 79 | 63 % |
+| Hecho (parcial) | 31 | 25 % |
 | No iniciado | 15 | 12 % |
 
-**Avance ponderado (parciales al 50%): ~73%**
+**Avance ponderado (parciales al 50%): ~75%**
 
 ### Por módulo
 
 | Módulo | RFs | Hecho | Parcial | No iniciado |
 |--------|-----|-------|---------|-------------|
 | 1 - Afiliados | 23 | 9 | 12 | 2 |
-| 2 - Empleadores | 4 | 3 | 1 | 0 |
-| 3 - Afiliaciones | 3 | 2 | 0 | 1 |
-| 4 - Motor cálculo | 24 | 19 | 5 | 0 |
-| 5 - Liquidación | 22 | 14 | 7 | 1 |
-| 6 - Facturación | 12 | 5 | 7 | 0 |
+| 2 - Empleadores | 4 | 4 | 0 | 0 |
+| 3 - Afiliaciones | 3 | 2 | 1 | 0 |
+| 4 - Motor cálculo | 24 | 20 | 4 | 0 |
+| 5 - Liquidación | 22 | 17 | 5 | 0 |
+| 6 - Facturación | 12 | 6 | 6 | 0 |
 | 7 - Cuadre caja | 2 | 2 | 0 | 0 |
 | 8 - Archivo PILA | 6 | 6 | 0 | 0 |
 | 9 - Incapacidades | 2 | 0 | 0 | 2 |
 | 10 - Asesores | 2 | 0 | 0 | 2 |
 | 11 - Terceros | 2 | 0 | 0 | 2 |
-| 12 - Documentos | 3 | 2 | 0 | 1 |
+| 12 - Documentos | 3 | 3 | 0 | 0 |
 | 13 - Comunicaciones | 2 | 0 | 0 | 2 |
 | 14 - Seguridad | 6 | 0 | 6 | 0 |
 | 15 - Reportes | 2 | 0 | 0 | 2 |
 | 16 - Config | 2 | 1 | 1 | 0 |
 | 17 - ETL | 3 | 0 | 2 | 1 |
 | 18 - Excepciones | 5 | 4 | 1 | 0 |
-| **TOTAL** | **125** | **67** | **42** | **16** |
+| **TOTAL** | **125** | **73** | **36** | **16** |
 
 ---
 
-*Última actualización: Sprint G implementado (pendiente commit) — abril 2026*
-*Próximo sprint: H — Completar Sprint G + novedades restantes*
+*Última actualización: cierre de brechas (matriz, RF-027/030/054/061/063/072/077/104, API RF-030) — abril 2026*
+*Próximo sprint recomendado: I — Asesores, terceros, consignaciones (BACKLOG.md)*

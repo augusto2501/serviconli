@@ -19,14 +19,35 @@ final class NoveltyController extends Controller
         $validated = $request->validate([
             'period_year' => ['required', 'integer', 'min:2000', 'max:2100'],
             'period_month' => ['required', 'integer', 'min:1', 'max:12'],
-            'novelty_type_code' => ['required', 'string', Rule::in(['TAE', 'TAP', 'VSP', 'VST', 'RET'])],
+            'novelty_type_code' => [
+                'required',
+                'string',
+                Rule::in([
+                    'ING', 'TAE', 'TDE', 'TAP', 'TDP', 'VSP', 'VST', 'VTE', 'VCT', 'RET',
+                    'LMA', 'LPA', 'IGE', 'IRL', 'SLN', 'LLU', 'AVP', 'COR',
+                ]),
+            ],
             'payer_id' => ['nullable', 'integer'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date'],
             'previous_entity_id' => ['nullable', 'integer'],
-            'new_entity_id' => ['nullable', 'integer', 'required_if:novelty_type_code,TAE', 'required_if:novelty_type_code,TAP'],
+            'new_entity_id' => [
+                'nullable',
+                'integer',
+                'required_if:novelty_type_code,TAE',
+                'required_if:novelty_type_code,TDE',
+                'required_if:novelty_type_code,TAP',
+                'required_if:novelty_type_code,TDP',
+            ],
             'previous_value' => ['nullable', 'integer'],
-            'new_value' => ['nullable', 'integer', 'required_if:novelty_type_code,VSP', 'required_if:novelty_type_code,VST'],
+            'new_value' => [
+                'nullable',
+                'numeric',
+                'required_if:novelty_type_code,VSP',
+                'required_if:novelty_type_code,VST',
+                'required_if:novelty_type_code,VTE',
+                'required_if:novelty_type_code,VCT',
+            ],
             'retirement_scope' => ['nullable', 'string', Rule::in(['TOTAL', 'PENSION_ONLY', 'ARL_ONLY']), 'required_if:novelty_type_code,RET'],
             'retirement_cause' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:2000'],
@@ -38,7 +59,11 @@ final class NoveltyController extends Controller
 
         $validated['created_by'] = $request->user()?->id;
 
-        $novelty = $noveltyService->register($affiliate, $period, $type, $validated);
+        try {
+            $novelty = $noveltyService->register($affiliate, $period, $type, $validated);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'novelty' => $novelty->load('affiliate'),

@@ -4,7 +4,15 @@
 
 ---
 
-## SPRINT H — Completar Sprint G + Novedades restantes
+## Estado (abril 2026) — cierre de brechas
+
+Los ítems H-2..H-5 están **implementados en código** (novedades ampliadas, RF-063, PDF cotizador, RF-030 + API + test, certificado PDF, scheduler). Pendiente: **commit unificado** y validación UAT.
+
+**Siguiente sprint operativo:** **Sprint I** (Asesores, terceros, consignaciones) — ver sección inferior.
+
+---
+
+## SPRINT H — Completar Sprint G + Novedades restantes *(histórico / mayormente cerrado)*
 **Prerrequisito:** commitear todo el trabajo del Sprint G antes de iniciar.
 
 ### H-1: Commit Sprint G

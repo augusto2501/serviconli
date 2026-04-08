@@ -89,4 +89,61 @@ final class SocialSecurityProfileService
 
         return SocialSecurityProfile::query()->create($newData);
     }
+
+    /**
+     * RF-061: Versiona perfil por cambio de tarifa (VTE = nueva tarifa EPS).
+     * Cierra versión actual y crea nueva con la tarifa actualizada.
+     *
+     * @see DOCUMENTO_RECTOR §3.4
+     */
+    public function versionProfileForTariffChange(
+        Affiliate $affiliate,
+        string $tarifaField,
+        float $newTarifa,
+    ): SocialSecurityProfile {
+        $current = $this->currentForAffiliate($affiliate->id, now());
+
+        if ($current !== null) {
+            $current->valid_until = now()->toDateString();
+            $current->save();
+        }
+
+        $newData = $current ? $current->toArray() : [];
+        unset($newData['id'], $newData['created_at'], $newData['updated_at'], $newData['valid_until']);
+
+        $newData['affiliate_id'] = $affiliate->id;
+        $newData[$tarifaField] = $newTarifa;
+        $newData['valid_from'] = now()->toDateString();
+        $newData['valid_until'] = null;
+
+        return SocialSecurityProfile::query()->create($newData);
+    }
+
+    /**
+     * RF-061: Versiona perfil por cambio de clase de riesgo ARL (VCT).
+     * Cierra versión actual y crea nueva con la nueva clase.
+     *
+     * @see DOCUMENTO_RECTOR §3.4
+     */
+    public function versionProfileForRiskClassChange(
+        Affiliate $affiliate,
+        int $newRiskClass,
+    ): SocialSecurityProfile {
+        $current = $this->currentForAffiliate($affiliate->id, now());
+
+        if ($current !== null) {
+            $current->valid_until = now()->toDateString();
+            $current->save();
+        }
+
+        $newData = $current ? $current->toArray() : [];
+        unset($newData['id'], $newData['created_at'], $newData['updated_at'], $newData['valid_until']);
+
+        $newData['affiliate_id'] = $affiliate->id;
+        $newData['arl_risk_class'] = $newRiskClass;
+        $newData['valid_from'] = now()->toDateString();
+        $newData['valid_until'] = null;
+
+        return SocialSecurityProfile::query()->create($newData);
+    }
 }

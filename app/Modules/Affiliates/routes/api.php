@@ -17,6 +17,7 @@ Route::get('affiliates/export', [AffiliateController::class, 'export']);
 Route::apiResource('affiliates', AffiliateController::class);
 Route::get('affiliates/{affiliate}/ficha-360', [Ficha360Controller::class, 'show']);
 Route::get('affiliates/{affiliate}/payment-certificate', [PaymentCertificateController::class, 'show']);
+Route::get('affiliates/{affiliate}/payment-certificate/pdf', [PaymentCertificateController::class, 'pdf']);
 Route::post('affiliates/{affiliate}/novelties', [NoveltyController::class, 'store']);
 Route::get('affiliates/{affiliate}/beneficiaries', [BeneficiaryController::class, 'index']);
 Route::post('affiliates/{affiliate}/beneficiaries', [BeneficiaryController::class, 'store']);

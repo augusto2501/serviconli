@@ -21,6 +21,7 @@ class ProjectSchemaMigrationsTest extends TestCase
             'afl_payers',
             'afl_affiliate_payer',
             'afl_social_security_profiles',
+            'afl_multi_income_contracts',
             'empl_employers',
             'bill_invoices',
             'cash_daily_closures',
