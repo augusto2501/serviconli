@@ -206,7 +206,7 @@ Depende de J-2 para enviar WhatsApp/notificación.
 Referencias: RF-018
 
 **Definition of Done Sprint K:**
-- [ ] 7 templates PDF generando correctamente
+- [x] 7 templates PDF generando correctamente
 - [ ] Dashboard con todos los indicadores del RF-114
 - [ ] Reportes operativos del RF-115
 - [ ] Job alertas beneficiarios funcionando

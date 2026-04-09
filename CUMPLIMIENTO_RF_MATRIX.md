@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Sprint J — incapacidades, WhatsApp/log, notificaciones, mora→WA (abril 2026)
+# Actualizado: Sprint K-1 — plantillas contrato PDF RF-103 (abril 2026)
 
 ---
 
@@ -18,7 +18,7 @@
 | RF-007 | Hecho | `is_foreigner` y `is_type_51` en `wf_enrollment_processes` paso 1 |
 | RF-008 | Hecho | `RadicadoNumberGenerator`: `radicado_yearly_sequences` + lock concurrencia; formato `RAD-{YYYY}-{NNNNNN}` |
 | RF-009 | Hecho (parcial) | Paso 6: `habeas_data_accepted` obligatorio; `gdpr_consent_records` con IP, user-agent, `accepted_at`. Pendiente: gestión derechos titular |
-| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService`: comisión nueva, tercero stub, WhatsApp `welcome` al cerrar enrollment y `confirmation` al reingreso (`WhatsAppOutboundService` → `comm_whatsapp_logs`). Pendiente: PDF contrato |
+| RF-010 | Hecho (parcial) | `PostEnrollmentCompletionService`: comisión nueva, tercero stub, WhatsApp bienvenida/confirmación. PDF contratos/certificados: `ContractPdfService` + `ContractTemplateRegistry` (v1, header `X-Contract-Template-Version`) |
 | RF-011 | Hecho | `EnrollmentBillingPreviewService`: doble cálculo (primer mes proporcional + mensual 30 días) vía `PILACalculationService` |
 | RF-012 | Hecho | `GET /api/reentry/eligible`: busca estados RETIRADO/INACTIVO por documento |
 | RF-013 | Hecho | `POST /api/reentry/step-1..3`: actualiza persona, entidades SS, pagador |
@@ -188,7 +188,7 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-103 | No iniciado | 7 templates contratos PDF. Sprint K |
+| RF-103 | Hecho (parcial) | 7 entregables PDF vía DomPDF: `operational_clauses`, `legal_association`, `affiliate_declaration`, `affiliation_type_declaration`, `voluntary_withdrawal`, `affiliation_certificate`, `payment_certificate` con `format=full|summary` + `year`/`month` (PILA confirmada). Ruta `GET /api/affiliates/{affiliate}/contract-documents/{code}`. Versionado v1 en registro PHP; almacenamiento histórico firmas pendiente |
 | RF-104 | Hecho | `PaymentCertificateService` + JSON `GET .../payment-certificate` + PDF `GET .../payment-certificate/pdf` (`resources/views/pdf/payment-certificate.blade.php`) |
 | RF-105 | Hecho | `NumberToWordsService` en módulo Billing |
 

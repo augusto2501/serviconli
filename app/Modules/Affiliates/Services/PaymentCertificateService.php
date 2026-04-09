@@ -68,8 +68,13 @@ final class PaymentCertificateService
      *
      * @param  array{period: array{year: int, month: int}, paid: bool, line: array<string, mixed>|null, message: string}  $certificateData
      */
-    public function downloadPdf(Affiliate $affiliate, array $certificateData): StreamedResponse
-    {
+    public function downloadPdf(
+        Affiliate $affiliate,
+        array $certificateData,
+        string $view = 'pdf.payment-certificate',
+        ?int $templateVersion = null,
+        ?string $formatSuffix = null,
+    ): StreamedResponse {
         if (! $certificateData['paid'] || $certificateData['line'] === null) {
             throw new \InvalidArgumentException('Certificado PDF solo con PILA confirmada para el período.');
         }
@@ -86,24 +91,33 @@ final class PaymentCertificateService
 
         $documentNumber = trim((string) ($person?->document_type ?? '').' '.(string) ($person?->document_number ?? ''));
 
-        $pdf = Pdf::loadView('pdf.payment-certificate', [
+        $viewData = [
             'period' => $data['period'],
             'line' => $data['line'],
             'message' => $data['message'],
             'personName' => $personName !== '' ? $personName : 'Afiliado #'.$affiliate->id,
             'documentNumber' => $documentNumber,
-        ])->setPaper('a4', 'portrait');
+            'generatedAt' => now(),
+        ];
+
+        $pdf = Pdf::loadView($view, $viewData)->setPaper('a4', 'portrait');
 
         $y = $data['period']['year'];
         $m = $data['period']['month'];
-        $filename = sprintf('certificado-pago-%s-%04d-%02d.pdf', $affiliate->id, $y, $m);
+        $suffix = $formatSuffix !== null && $formatSuffix !== '' ? '-'.$formatSuffix : '';
+        $filename = sprintf('certificado-pago%s-%s-%04d-%02d.pdf', $suffix, $affiliate->id, $y, $m);
+
+        $headers = ['Content-Type' => 'application/pdf'];
+        if ($templateVersion !== null) {
+            $headers['X-Contract-Template-Version'] = (string) $templateVersion;
+        }
 
         return response()->streamDownload(
             static function () use ($pdf): void {
                 echo $pdf->output();
             },
             $filename,
-            ['Content-Type' => 'application/pdf'],
+            $headers,
         );
     }
 }
