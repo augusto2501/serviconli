@@ -4,13 +4,15 @@ namespace App\Modules\Affiliates\Models;
 
 // DOCUMENTO_RECTOR §4 Grupo B — core_people
 
+use App\Modules\Security\Traits\Auditable;
+use App\Modules\Security\Traits\SoftDeletesWithReason;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Person extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes, SoftDeletesWithReason;
 
     protected $table = 'core_people';
 

@@ -28,7 +28,9 @@ abstract class TestCase extends BaseTestCase
         }
 
         if ($this->shouldAuthenticateApi()) {
-            Sanctum::actingAs(User::factory()->create());
+            $user = User::factory()->create();
+            $user->assignRole('ADMIN');
+            Sanctum::actingAs($user);
         }
     }
 }

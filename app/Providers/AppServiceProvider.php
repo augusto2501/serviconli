@@ -31,6 +31,7 @@ use App\Modules\RegulatoryEngine\Services\OperationalExceptionService;
 use App\Modules\RegulatoryEngine\Services\PILACalculationService;
 use App\Modules\RegulatoryEngine\Services\SolidarityFundCalculator;
 use App\Modules\RegulatoryEngine\Strategies\StrategyResolver;
+use App\Modules\Security\Commands\FilesPurgeCommand;
 use App\Modules\ThirdParties\Models\AdvisorReceivable;
 use App\Modules\ThirdParties\Models\BankDeposit;
 use App\Policies\AdvisorCommissionPolicy;
@@ -65,6 +66,7 @@ class AppServiceProvider extends ServiceProvider
             TransicionPeriodoCommand::class,
             MoraDetectCommand::class,
             BeneficiaryAlertCommand::class,
+            FilesPurgeCommand::class,
         ]);
 
         $this->app->singleton(PILACalculationService::class, function ($app) {

@@ -245,11 +245,11 @@ RF-113: Comando `files:purge` para archivos PILA > 2 años.
 Referencias: RF-110-113, LISTADO §14.3-14.5
 
 **Definition of Done Sprint L:**
-- [ ] 5 roles Spatie funcionando con permisos granulares
-- [ ] Audit log en todas las acciones modificativas
-- [ ] Habeas Data con gestión de derechos
-- [ ] Soft delete con motivo enforced
-- [ ] Comando files:purge funcional
+- [x] 5 roles Spatie funcionando con permisos granulares
+- [x] Audit log en todas las acciones modificativas
+- [x] Habeas Data con gestión de derechos
+- [x] Soft delete con motivo enforced
+- [x] Comando files:purge funcional
 
 ---
 

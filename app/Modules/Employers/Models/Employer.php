@@ -4,12 +4,14 @@ namespace App\Modules\Employers\Models;
 
 // RF-024–027
 
+use App\Modules\Security\Traits\Auditable;
+use App\Modules\Security\Traits\SoftDeletesWithReason;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employer extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes, SoftDeletesWithReason;
 
     protected $table = 'empl_employers';
 

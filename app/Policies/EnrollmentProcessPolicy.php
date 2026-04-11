@@ -3,17 +3,18 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Modules\Affiliates\Models\EnrollmentProcess;
+
+// RF-108 — RBAC con Spatie Permission
 
 final class EnrollmentProcessPolicy
 {
     public function create(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('enrollment.create');
     }
 
-    public function update(User $user, EnrollmentProcess $enrollmentProcess): bool
+    public function update(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('enrollment.update');
     }
 }

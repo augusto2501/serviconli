@@ -3,17 +3,18 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Modules\Affiliates\Models\ReentryProcess;
+
+// RF-108 — RBAC con Spatie Permission
 
 final class ReentryProcessPolicy
 {
     public function create(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('reentry.create');
     }
 
-    public function update(User $user, ReentryProcess $reentryProcess): bool
+    public function update(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('reentry.update');
     }
 }

@@ -3,17 +3,18 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Modules\ThirdParties\Models\AdvisorReceivable;
+
+// RF-108 — RBAC con Spatie Permission
 
 final class AdvisorReceivablePolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('receivables.view');
     }
 
-    public function update(User $user, AdvisorReceivable $advisorReceivable): bool
+    public function update(User $user): bool
     {
-        return true;
+        return $user->hasPermissionTo('receivables.update');
     }
 }

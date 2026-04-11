@@ -6,12 +6,15 @@ namespace App\Modules\Billing\Models;
 
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliations\Models\Payer;
+use App\Modules\Security\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BillInvoice extends Model
 {
+    use Auditable;
+
     protected $table = 'bill_invoices';
 
     protected $fillable = [

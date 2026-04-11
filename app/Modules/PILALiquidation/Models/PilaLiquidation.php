@@ -4,12 +4,15 @@ namespace App\Modules\PILALiquidation\Models;
 
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\PILALiquidation\Enums\PilaLiquidationStatus;
+use App\Modules\Security\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PilaLiquidation extends Model
 {
+    use Auditable;
+
     protected $table = 'pila_liquidations';
 
     protected $fillable = [

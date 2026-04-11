@@ -26,6 +26,7 @@ final class ServiconliVerticalFlowTest extends TestCase
             'email' => 'e2e@serviconli.test',
             'password' => Hash::make('e2e-secret'),
         ]);
+        $user->assignRole('ADMIN');
 
         $login = $this->postJson('/api/login', [
             'email' => 'e2e@serviconli.test',

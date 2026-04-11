@@ -207,12 +207,12 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-108 | Hecho (parcial) | Sanctum + 5 Policies (Affiliate/Employer/Enrollment/Reentry/PilaLiquidation). Pendiente: Spatie Permission 5 roles (Sprint L) |
-| RF-109 | Hecho (parcial) | Framework de auth presente. Pendiente: tabla `sec_audit_logs` completa en todas las acciones modificativas (Sprint L) |
-| RF-110 | Hecho (parcial) | `gdpr_consent_records` en paso 6 del wizard. Pendiente: gestión derechos titular (Sprint L) |
-| RF-111 | Hecho (parcial) | Flag `PORTAL_CREDENTIALS_ENCRYPT=true` activa cifrado Laravel. Pendiente: log específico de acceso/descifrado (Sprint L) |
-| RF-112 | Hecho (parcial) | `SoftDeletes` en modelos principales. Pendiente: campo `deleted_reason` + `deleted_by` enforced en todos (Sprint L) |
-| RF-113 | Hecho (parcial) | Metadatos en `pila_file_generations`. Pendiente: comando `files:purge` (Sprint L) |
+| RF-108 | Hecho | `spatie/laravel-permission` v7.2, 5 roles (ADMIN/AFILIACIONES/PAGOS/CARTERA/CONSULTA) con permisos granulares. 10 Policies actualizadas con `hasPermissionTo()`. User model con `HasRoles` trait. |
+| RF-109 | Hecho | Tabla `sec_audit_logs` con usuario, acción, modelo, old/new values JSON, IP, user-agent. `Auditable` trait en Affiliate, Person, Employer, Novelty, PilaLiquidation, BillInvoice. `AuditLogService` + `AuditLogController` con API paginada. |
+| RF-110 | Hecho | Tabla `gdpr_requests` con 4 tipos (CONSULTA/RECTIFICACION/SUPRESION/REVOCACION). `GdprRequestService` + `GdprRequestController` con API CRUD, resolución y resumen. |
+| RF-111 | Hecho | Tabla `sec_credential_access_logs` registra cada acceso/descifrado de credenciales. `CredentialAccessService::logAccess()` y `::decryptAndLog()`. |
+| RF-112 | Hecho | `SoftDeletesWithReason` trait con `softDeleteWithReason($reason)` que registra `deleted_reason` + `deleted_by`. Migración agrega columnas a 9 tablas críticas. |
+| RF-113 | Hecho | Comando `files:purge` elimina archivos PILA >2 años (configurable `--months`), marca status=PURGED. Soporta `--dry-run`. Registros BD se mantienen indefinidamente. |
 
 ---
 
@@ -264,7 +264,7 @@
 | Hecho (parcial) | 31 | 25 % |
 | No iniciado | 12 | 10 % |
 
-**Avance ponderado (parciales al 50%): ~78%**
+**Avance ponderado (parciales al 50%): ~82%**
 
 ### Por módulo
 

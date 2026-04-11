@@ -2,6 +2,8 @@
 
 namespace App\Modules\Affiliates\Models;
 
+use App\Modules\Security\Traits\Auditable;
+use App\Modules\Security\Traits\SoftDeletesWithReason;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Novelty extends Model
 {
-    use SoftDeletes;
+    use Auditable, SoftDeletes, SoftDeletesWithReason;
 
     protected $table = 'afl_novelties';
 
