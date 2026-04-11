@@ -2,7 +2,6 @@
 
 namespace App\Modules\PILALiquidation\Services;
 
-use App\Modules\Affiliations\Models\Payer;
 use App\Modules\PILALiquidation\Models\LiquidationBatch;
 use App\Modules\PILALiquidation\Models\LiquidationBatchLine;
 
@@ -50,7 +49,7 @@ final class ARUSFileFormatter
             $lines[] = $this->formatTipo02($batch, $batchLine);
         }
 
-        return implode("\r\n", $lines) . "\r\n";
+        return implode("\r\n", $lines)."\r\n";
     }
 
     /**
@@ -160,9 +159,9 @@ final class ARUSFileFormatter
         $secondName = $n->padRight($person?->second_name ?? '', 30);
         $firstSurname = $n->padRight($person?->first_surname ?? '', 20);
         $secondSurname = $n->padRight($person?->second_surname ?? '', 30);
-        $nameBlock = $firstSurname . $secondSurname . $firstName . $secondName;
+        $nameBlock = $firstSurname.$secondSurname.$firstName.$secondName;
 
-        $record = substr($record, 0, $nameStart) . $nameBlock .
+        $record = substr($record, 0, $nameStart).$nameBlock.
                   substr($record, min($nameStart + strlen($nameBlock), 687));
 
         return substr(str_pad($record, 687), 0, 687);

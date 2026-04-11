@@ -5,13 +5,13 @@ namespace App\Modules\Affiliates\Controllers;
 // RF-001, RF-005, RF-006 — wizard backend por pasos con validación y cierre.
 
 use App\Http\Controllers\Controller;
+use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Enums\AffiliateClientType;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\Beneficiary;
 use App\Modules\Affiliates\Models\EnrollmentProcess;
 use App\Modules\Affiliates\Models\GdprConsentRecord;
 use App\Modules\Affiliates\Models\Person;
-use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Services\EnrollmentBillingPreviewService;
 use App\Modules\Affiliates\Services\PostEnrollmentCompletionService;
 use App\Modules\Affiliates\Services\RadicadoNumberGenerator;

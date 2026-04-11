@@ -40,8 +40,8 @@ final class PaymentValidationService
             $date = $existing->payment_date?->format('Y-m-d') ?? 'N/A';
             throw new InvalidArgumentException(
                 "Consignación duplicada: la referencia '{$bankReference}' ya fue registrada "
-                . "el {$date} por \${$existing->amount_pesos}. "
-                . 'Verifique si se trata de un excedente o un error de digitación (RN-24).'
+                ."el {$date} por \${$existing->amount_pesos}. "
+                .'Verifique si se trata de un excedente o un error de digitación (RN-24).'
             );
         }
     }

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Advisors\Models\AdvisorCommission;
+use App\Modules\Affiliates\Commands\BeneficiaryAlertCommand;
 use App\Modules\Affiliates\Commands\MoraDetectCommand;
 use App\Modules\Affiliates\Commands\TransicionPeriodoCommand;
 use App\Modules\Affiliates\Events\ARLRetirementReminderRequested;
@@ -63,6 +64,7 @@ class AppServiceProvider extends ServiceProvider
             DailyCloseCommand::class,
             TransicionPeriodoCommand::class,
             MoraDetectCommand::class,
+            BeneficiaryAlertCommand::class,
         ]);
 
         $this->app->singleton(PILACalculationService::class, function ($app) {

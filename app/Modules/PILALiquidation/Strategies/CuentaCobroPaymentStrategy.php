@@ -28,7 +28,7 @@ final class CuentaCobroPaymentStrategy implements PaymentMethodStrategy
         $payerId = $context['payer_id'] ?? null;
 
         $invoice = BillInvoice::query()->create([
-            'public_number' => 'CC-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'public_number' => 'CC-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
             'affiliate_id' => $liquidation->affiliate_id,
             'payer_id' => $payerId,
             'tipo' => 'APORTE_INDIVIDUAL',

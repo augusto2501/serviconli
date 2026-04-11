@@ -26,7 +26,7 @@ final class ConsignacionPaymentStrategy implements PaymentMethodStrategy
     public function process(PilaLiquidation $liquidation, array $context = []): array
     {
         $invoice = BillInvoice::query()->create([
-            'public_number' => 'CB-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'public_number' => 'CB-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
             'affiliate_id' => $liquidation->affiliate_id,
             'payer_id' => null,
             'tipo' => 'APORTE_INDIVIDUAL',

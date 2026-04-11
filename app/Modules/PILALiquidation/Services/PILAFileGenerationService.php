@@ -36,7 +36,6 @@ final class PILAFileGenerationService
      * Genera el archivo PILA a partir de un lote confirmado.
      *
      * @param  string  $format  PLANO_ARUS o XLSX
-     * @return PILAFileGeneration
      */
     public function generate(
         int $batchId,

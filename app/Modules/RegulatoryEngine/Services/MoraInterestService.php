@@ -18,10 +18,10 @@ final class MoraInterestService
     /**
      * Calcula interés de mora sobre la base de aportes SS.
      *
-     * @param  int    $totalAportePOSPesos  Base: salud+pensión+ARL+CCF+solidaridad
-     * @param  int    $daysLate             Días de mora (0 = sin mora)
-     * @param  bool   $moraExempt           Excepción operativa: sin intereses
-     * @param  float  $monthlyRatePercent   Tasa mensual (default 2.5%)
+     * @param  int  $totalAportePOSPesos  Base: salud+pensión+ARL+CCF+solidaridad
+     * @param  int  $daysLate  Días de mora (0 = sin mora)
+     * @param  bool  $moraExempt  Excepción operativa: sin intereses
+     * @param  float  $monthlyRatePercent  Tasa mensual (default 2.5%)
      */
     public function interestPesos(
         int $totalAportePOSPesos,

@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Sprint K-1 — plantillas contrato PDF RF-103 (abril 2026)
+# Actualizado: Sprint K completo — RF-103, RF-114, RF-115, RF-018 (abril 2026)
 
 ---
 
@@ -25,8 +25,8 @@
 | RF-014 | Hecho | `POST /api/reentry/confirm`: cierra perfil SS anterior, crea nueva versión, recibo tipo "03", estado AFILIADO |
 | RF-015 | Hecho (parcial) | `Ficha360ViewBuilder`: persona, perfil SS vigente con pilaCode, pagador, beneficiarios, notas recientes, liquidaciones PILA confirmadas, facturas, excepciones activas, portal credentials. Pendiente: documentos adjuntos |
 | RF-016 | Hecho (parcial) | Accesos rápidos en UI Vue (`/afiliados/{id}/ficha`). Actions conectados como "próximamente" hasta flujos definitivos |
-| RF-017 | Hecho (parcial) | `GET/POST /api/affiliates/{id}/beneficiaries`: CRUD básico. Pendiente: alertas automáticas (RF-018) |
-| RF-018 | No iniciado | Alertas automáticas (18 años, vencimiento certificados). Sprint K |
+| RF-017 | Hecho (parcial) | `GET/POST /api/affiliates/{id}/beneficiaries`: CRUD básico. Alertas automáticas implementadas (RF-018) |
+| RF-018 | Hecho | `beneficiaries:alert` command: detecta beneficiarios próximos a cumplir 18 años (30d), certificados de estudiante por vencer, fin de protección. Genera `comm_notifications` + WhatsApp. Scheduler diario a las 07:00. `--dry-run` disponible |
 | RF-019 | Hecho | `GET/POST /api/affiliates/{id}/notes`: tipos ADMINISTRATIVA/MÉDICA/GENERAL/PAGO, `user_id` Sanctum |
 | RF-020 | Hecho | Notas visibles en `GET /api/affiliates` (conteo) y en ficha 360° (recientes) |
 | RF-021 | Hecho (parcial) | `GET /api/affiliates`: nombre completo, cotizante, estado, mora, `paymentIndicator` (SI/NO/ANTICIPADO/NEUTRO), EPS/AFP/ARL/CCF, operador PILA, último período pagado, notas. Pendiente: paridad exacta todas las columnas del Excel |
@@ -220,8 +220,8 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-114 | No iniciado | Dashboard gerencial. Sprint K |
-| RF-115 | No iniciado | Reportes operativos. Sprint K |
+| RF-114 | Hecho | `GET /api/dashboard`: afiliados (activos/mora/inactivos), recaudo mes actual vs anterior con variación %, planillas (total/confirmadas/archivos), afiliaciones nuevas, distribución por tipo cliente y operador PILA, alertas (mora >90d, beneficiarios 18 años, certificados) |
+| RF-115 | Hecho | 6 reportes operativos: `GET /api/reports/daily-contributions`, `/mora` (por nivel + top 20), `/affiliates-by-advisor`, `/affiliates-by-employer`, `/cash-reconciliation` (13 conceptos), `/end-of-day` (resumen ejecutivo) |
 
 ---
 
@@ -260,17 +260,17 @@
 
 | Estado | Cantidad | % |
 |--------|----------|---|
-| Hecho | 79 | 63 % |
+| Hecho | 82 | 66 % |
 | Hecho (parcial) | 31 | 25 % |
-| No iniciado | 15 | 12 % |
+| No iniciado | 12 | 10 % |
 
-**Avance ponderado (parciales al 50%): ~75%**
+**Avance ponderado (parciales al 50%): ~78%**
 
 ### Por módulo
 
 | Módulo | RFs | Hecho | Parcial | No iniciado |
 |--------|-----|-------|---------|-------------|
-| 1 - Afiliados | 23 | 9 | 12 | 2 |
+| 1 - Afiliados | 23 | 10 | 12 | 1 |
 | 2 - Empleadores | 4 | 4 | 0 | 0 |
 | 3 - Afiliaciones | 3 | 2 | 1 | 0 |
 | 4 - Motor cálculo | 24 | 20 | 4 | 0 |
@@ -278,19 +278,19 @@
 | 6 - Facturación | 12 | 6 | 6 | 0 |
 | 7 - Cuadre caja | 2 | 2 | 0 | 0 |
 | 8 - Archivo PILA | 6 | 6 | 0 | 0 |
-| 9 - Incapacidades | 2 | 0 | 0 | 2 |
-| 10 - Asesores | 2 | 0 | 0 | 2 |
-| 11 - Terceros | 2 | 0 | 0 | 2 |
+| 9 - Incapacidades | 2 | 2 | 0 | 0 |
+| 10 - Asesores | 2 | 2 | 0 | 0 |
+| 11 - Terceros | 2 | 1 | 1 | 0 |
 | 12 - Documentos | 3 | 3 | 0 | 0 |
-| 13 - Comunicaciones | 2 | 0 | 0 | 2 |
+| 13 - Comunicaciones | 2 | 2 | 0 | 0 |
 | 14 - Seguridad | 6 | 0 | 6 | 0 |
-| 15 - Reportes | 2 | 0 | 0 | 2 |
+| 15 - Reportes | 2 | 2 | 0 | 0 |
 | 16 - Config | 2 | 1 | 1 | 0 |
 | 17 - ETL | 3 | 0 | 2 | 1 |
 | 18 - Excepciones | 5 | 4 | 1 | 0 |
-| **TOTAL** | **125** | **73** | **36** | **16** |
+| **TOTAL** | **125** | **82** | **31** | **12** |
 
 ---
 
-*Última actualización: cierre de brechas (matriz, RF-027/030/054/061/063/072/077/104, API RF-030) — abril 2026*
-*Próximo sprint recomendado: I — Asesores, terceros, consignaciones (BACKLOG.md)*
+*Última actualización: Sprint K completo (RF-103 PDFs, RF-114 dashboard, RF-115 reportes, RF-018 alertas beneficiarios) — abril 2026*
+*Próximo sprint recomendado: L — Seguridad completa (RBAC Spatie, auditoría, Habeas Data) (BACKLOG.md)*

@@ -5,9 +5,9 @@ namespace App\Modules\Affiliates\Controllers;
 // RF-012, RF-013, RF-014 — búsqueda, borrador por pasos y cierre de reingreso
 
 use App\Http\Controllers\Controller;
+use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\Affiliates\Models\Person;
-use App\Modules\Advisors\Models\Advisor;
 use App\Modules\Affiliates\Models\ReentryProcess;
 use App\Modules\Affiliates\Services\PostEnrollmentCompletionService;
 use App\Modules\Affiliations\Models\AffiliatePayer;

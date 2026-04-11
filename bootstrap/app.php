@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('pila:transicion-periodo')
             ->monthlyOn((int) env('SCHEDULE_PILA_TRANSICION_DAY', 1), env('SCHEDULE_PILA_TRANSICION_AT', '02:00'))
             ->timezone($tz);
+
+        // RF-018: alertas beneficiarios (18 años, certificados)
+        $schedule->command('beneficiaries:alert')
+            ->dailyAt(env('SCHEDULE_BENEFICIARY_ALERT_AT', '07:00'))
+            ->timezone($tz);
     })
     ->withMiddleware(function (Middleware $middleware): void {
         //

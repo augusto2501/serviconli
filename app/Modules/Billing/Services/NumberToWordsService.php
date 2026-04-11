@@ -35,7 +35,7 @@ final class NumberToWordsService
     ];
 
     /**
-     * @param int $pesos Monto en pesos (entero, sin centavos)
+     * @param  int  $pesos  Monto en pesos (entero, sin centavos)
      */
     public function convert(int $pesos): string
     {
@@ -44,12 +44,12 @@ final class NumberToWordsService
         }
 
         if ($pesos < 0) {
-            return 'MENOS ' . $this->convert(abs($pesos));
+            return 'MENOS '.$this->convert(abs($pesos));
         }
 
         $result = $this->intToWords($pesos);
 
-        return trim($result) . ' PESOS M/CTE';
+        return trim($result).' PESOS M/CTE';
     }
 
     private function intToWords(int $n): string
@@ -71,7 +71,7 @@ final class NumberToWordsService
         }
 
         if ($n < 20) {
-            return 'DIECI' . self::UNITS[$n - 10];
+            return 'DIECI'.self::UNITS[$n - 10];
         }
 
         if ($n === 20) {
@@ -79,7 +79,7 @@ final class NumberToWordsService
         }
 
         if ($n < 30) {
-            return 'VEINTI' . self::UNITS[$n - 20];
+            return 'VEINTI'.self::UNITS[$n - 20];
         }
 
         if ($n < 100) {
@@ -89,7 +89,7 @@ final class NumberToWordsService
                 return self::TENS_PREFIX[$tens];
             }
 
-            return self::TENS_PREFIX[$tens] . ' Y ' . self::UNITS[$units];
+            return self::TENS_PREFIX[$tens].' Y '.self::UNITS[$units];
         }
 
         if ($n === 100) {
@@ -100,32 +100,32 @@ final class NumberToWordsService
             $hundreds = intdiv($n, 100);
             $remainder = $n % 100;
 
-            return self::HUNDREDS[$hundreds] . ($remainder > 0 ? ' ' . $this->intToWords($remainder) : '');
+            return self::HUNDREDS[$hundreds].($remainder > 0 ? ' '.$this->intToWords($remainder) : '');
         }
 
         if ($n < 1_000_000) {
             $thousands = intdiv($n, 1000);
             $remainder = $n % 1000;
 
-            $prefix = $thousands === 1 ? 'MIL' : $this->intToWords($thousands) . ' MIL';
+            $prefix = $thousands === 1 ? 'MIL' : $this->intToWords($thousands).' MIL';
 
-            return $prefix . ($remainder > 0 ? ' ' . $this->intToWords($remainder) : '');
+            return $prefix.($remainder > 0 ? ' '.$this->intToWords($remainder) : '');
         }
 
         if ($n < 1_000_000_000) {
             $millions = intdiv($n, 1_000_000);
             $remainder = $n % 1_000_000;
 
-            $prefix = $millions === 1 ? 'UN MILLÓN' : $this->intToWords($millions) . ' MILLONES';
+            $prefix = $millions === 1 ? 'UN MILLÓN' : $this->intToWords($millions).' MILLONES';
 
-            return $prefix . ($remainder > 0 ? ' ' . $this->intToWords($remainder) : '');
+            return $prefix.($remainder > 0 ? ' '.$this->intToWords($remainder) : '');
         }
 
         $billions = intdiv($n, 1_000_000_000);
         $remainder = $n % 1_000_000_000;
 
-        $prefix = $billions === 1 ? 'MIL MILLONES' : $this->intToWords($billions) . ' MIL MILLONES';
+        $prefix = $billions === 1 ? 'MIL MILLONES' : $this->intToWords($billions).' MIL MILLONES';
 
-        return $prefix . ($remainder > 0 ? ' ' . $this->intToWords($remainder) : '');
+        return $prefix.($remainder > 0 ? ' '.$this->intToWords($remainder) : '');
     }
 }

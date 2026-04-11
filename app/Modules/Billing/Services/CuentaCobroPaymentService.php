@@ -50,8 +50,8 @@ final class CuentaCobroPaymentService
 
         if ($amountPesos !== $expectedAmount) {
             throw new InvalidArgumentException(
-                "El pago debe ser exacto: \${$expectedAmount} (" . ($isOportuno ? 'oportuno' : 'con mora') . '). '
-                . "Recibido: \${$amountPesos}. No se aceptan pagos parciales."
+                "El pago debe ser exacto: \${$expectedAmount} (".($isOportuno ? 'oportuno' : 'con mora').'). '
+                ."Recibido: \${$amountPesos}. No se aceptan pagos parciales."
             );
         }
 

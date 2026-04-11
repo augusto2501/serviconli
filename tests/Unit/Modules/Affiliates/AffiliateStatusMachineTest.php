@@ -3,6 +3,7 @@
 namespace Tests\Unit\Modules\Affiliates;
 
 use App\Modules\Affiliates\Models\Affiliate;
+use App\Modules\Affiliates\Models\Person;
 use App\Modules\Affiliates\Services\AffiliateStatusMachine;
 use App\Modules\RegulatoryEngine\Models\AffiliateStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -143,7 +144,7 @@ class AffiliateStatusMachineTest extends TestCase
     {
         $status = AffiliateStatus::query()->where('code', $statusCode)->first();
 
-        $person = \App\Modules\Affiliates\Models\Person::query()->create([
+        $person = Person::query()->create([
             'document_type' => 'CC',
             'document_number' => (string) random_int(100000000, 999999999),
             'first_name' => 'Test',

@@ -67,7 +67,7 @@ final class PILAFileController extends Controller
             'data' => collect($items->items())->map(fn ($g) => [
                 'id' => $g->id,
                 'payer_name' => $g->payer?->razon_social,
-                'period' => "{$g->period_year}-" . str_pad($g->period_month, 2, '0', STR_PAD_LEFT),
+                'period' => "{$g->period_year}-".str_pad($g->period_month, 2, '0', STR_PAD_LEFT),
                 'file_format' => $g->file_format,
                 'affiliates_count' => $g->affiliates_count,
                 'planilla_number' => $g->planilla_number,

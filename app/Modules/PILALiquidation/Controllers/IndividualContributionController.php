@@ -7,6 +7,7 @@ use App\Modules\Affiliates\Models\Affiliate;
 use App\Modules\PILALiquidation\Requests\StoreContributionRequest;
 use App\Modules\PILALiquidation\Services\ContributionService;
 use App\Modules\PILALiquidation\Strategies\PaymentMethodResolver;
+use App\Modules\RegulatoryEngine\ValueObjects\Periodo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -44,7 +45,7 @@ final class IndividualContributionController extends Controller
             $periodData = $contributionService->determinePeriod($affiliate, $contributorTypeCode);
         } catch (\Throwable $e) {
             $periodData = [
-                'period' => new \App\Modules\RegulatoryEngine\ValueObjects\Periodo(now()->year, now()->month),
+                'period' => new Periodo(now()->year, now()->month),
                 'days' => 30,
                 'is_first_contribution' => true,
                 'is_advance_period' => false,
@@ -60,9 +61,9 @@ final class IndividualContributionController extends Controller
                 'id' => $affiliate->id,
                 'document_number' => $affiliate->person?->document_number,
                 'full_name' => trim(
-                    ($affiliate->person?->first_name ?? '') . ' ' .
-                    ($affiliate->person?->second_name ?? '') . ' ' .
-                    ($affiliate->person?->first_surname ?? '') . ' ' .
+                    ($affiliate->person?->first_name ?? '').' '.
+                    ($affiliate->person?->second_name ?? '').' '.
+                    ($affiliate->person?->first_surname ?? '').' '.
                     ($affiliate->person?->second_surname ?? '')
                 ),
                 'status_code' => $affiliate->status?->code ?? 'AFILIADO',
@@ -117,7 +118,7 @@ final class IndividualContributionController extends Controller
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'Error en cálculo: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Error en cálculo: '.$e->getMessage()], 500);
         }
 
         return response()->json([

@@ -3,8 +3,8 @@
 namespace App\Modules\Billing\Controllers;
 
 use App\Modules\Billing\Models\CuentaCobro;
-use App\Modules\Billing\Services\CuentaCobroService;
 use App\Modules\Billing\Services\CuentaCobroPaymentService;
+use App\Modules\Billing\Services\CuentaCobroService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;

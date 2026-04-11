@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Modules\ThirdParties\Models\BankDeposit;
 
 final class BankDepositPolicy
 {

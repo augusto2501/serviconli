@@ -207,10 +207,10 @@ Referencias: RF-018
 
 **Definition of Done Sprint K:**
 - [x] 7 templates PDF generando correctamente
-- [ ] Dashboard con todos los indicadores del RF-114
-- [ ] Reportes operativos del RF-115
-- [ ] Job alertas beneficiarios funcionando
-- [ ] `php artisan test` sin regresiones
+- [x] Dashboard con todos los indicadores del RF-114
+- [x] Reportes operativos del RF-115
+- [x] Job alertas beneficiarios funcionando
+- [x] `php artisan test` sin regresiones
 
 ---
 

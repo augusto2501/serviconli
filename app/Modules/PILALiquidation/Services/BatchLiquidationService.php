@@ -13,7 +13,6 @@ use App\Modules\RegulatoryEngine\DTOs\CalculationContext;
 use App\Modules\RegulatoryEngine\Services\PILACalculationService;
 use App\Modules\RegulatoryEngine\Strategies\StrategyResolver;
 use App\Modules\RegulatoryEngine\ValueObjects\Periodo;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -347,7 +346,7 @@ final class BatchLiquidationService
 
         foreach ($entities as $e) {
             $code = $e['entity']?->pila_code ?? 'UNKNOWN';
-            $key = $code . '|' . $e['subsystem'];
+            $key = $code.'|'.$e['subsystem'];
             $totals[$key] = ($totals[$key] ?? 0) + $e['amount'];
         }
     }

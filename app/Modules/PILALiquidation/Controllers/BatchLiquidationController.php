@@ -100,7 +100,7 @@ final class BatchLiquidationController extends Controller
                     'razon_social' => $b->payer->razon_social,
                     'nit' => $b->payer->nit,
                 ] : null,
-                'period' => "{$b->period_year}-" . str_pad($b->period_month, 2, '0', STR_PAD_LEFT),
+                'period' => "{$b->period_year}-".str_pad($b->period_month, 2, '0', STR_PAD_LEFT),
                 'status' => $b->status,
                 'cant_affiliates' => $b->cant_affiliates,
                 'grand_total' => $b->grand_total,
@@ -241,7 +241,7 @@ final class BatchLiquidationController extends Controller
             'id' => $l->id,
             'affiliate_id' => $l->affiliate_id,
             'affiliate_name' => trim(
-                ($l->affiliate?->person?->first_name ?? '') . ' ' .
+                ($l->affiliate?->person?->first_name ?? '').' '.
                 ($l->affiliate?->person?->first_surname ?? '')
             ),
             'document_number' => $l->affiliate?->person?->document_number,

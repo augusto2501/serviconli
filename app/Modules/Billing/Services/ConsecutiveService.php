@@ -16,7 +16,7 @@ final class ConsecutiveService
     /**
      * Genera el siguiente consecutivo para un prefijo dado.
      *
-     * @param string $prefix RC, CC, SC, RAD, CE
+     * @param  string  $prefix  RC, CC, SC, RAD, CE
      */
     public function next(string $prefix): string
     {
@@ -52,7 +52,7 @@ final class ConsecutiveService
         }
 
         $last = DB::table($table)
-            ->where($column, 'LIKE', $pattern . '%')
+            ->where($column, 'LIKE', $pattern.'%')
             ->orderByDesc($column)
             ->value($column);
 
