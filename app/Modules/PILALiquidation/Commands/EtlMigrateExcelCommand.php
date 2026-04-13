@@ -59,6 +59,8 @@ final class EtlMigrateExcelCommand extends Command
 
     private array $warnings = [];
 
+    private array $statusIdCache = [];
+
     public function handle(): int
     {
         $path = $this->argument('path');
@@ -145,13 +147,21 @@ final class EtlMigrateExcelCommand extends Command
             'email' => $this->clean($this->val($c, 12)),
         ];
 
-        // T8: Mapear tipo cliente
+        // Novelty (se extrae temprano para determinar estado)
+        $noveltyRaw = $this->val($c, 23);
+        $noveltyDate = $this->parseDate($this->val($c, 24));
+        $noveltyCode = $this->extractNoveltyCode($noveltyRaw);
+
+        // T8: Mapear tipo cliente y estado
         $clientType = self::CLIENT_TYPE_MAP[strtoupper(trim($this->val($c, 1) ?? ''))] ?? 'SERVICONLI';
         $status = strtoupper(trim($this->val($c, 0) ?? ''));
+        $statusId = $this->resolveStatusId($status);
+        $isRetired = $noveltyCode === 'RET' || str_contains($status, 'RETIRADO') || str_contains($status, 'INACTIVO');
 
         $affiliateData = [
             'client_type' => $clientType,
-            'status_excel' => $status,
+            'status_id' => $statusId,
+            'mora_status' => $isRetired ? null : 'AL_DIA',
             'contributor_type_code' => $this->extractContributorCode($this->val($c, 2)),
             'salary_pesos' => $this->cleanInt($this->val($c, 28)),
             'arl_risk_class' => $this->extractRiskClass($this->val($c, 30)),
@@ -175,9 +185,6 @@ final class EtlMigrateExcelCommand extends Command
             'afp' => $this->val($c, 39),
         ];
 
-        $noveltyRaw = $this->val($c, 23);
-        $noveltyDate = $this->parseDate($this->val($c, 24));
-
         if ($dryRun) {
             $this->imported++;
             if ($this->imported % 100 === 0) {
@@ -189,7 +196,7 @@ final class EtlMigrateExcelCommand extends Command
 
         DB::transaction(function () use (
             $personData, $affiliateData, $payerData, $entityNames,
-            $credentials, $mesPago, $noveltyRaw, $noveltyDate, $rowNum
+            $credentials, $mesPago, $noveltyRaw, $noveltyDate, $noveltyCode, $rowNum
         ) {
             // Person → core_people
             DB::table('core_people')->updateOrInsert(
@@ -217,6 +224,8 @@ final class EtlMigrateExcelCommand extends Command
                 ['person_id' => $person->id],
                 [
                     'client_type' => $affiliateData['client_type'],
+                    'status_id' => $affiliateData['status_id'],
+                    'mora_status' => $affiliateData['mora_status'],
                     'operational_notes' => $affiliateData['observations_affiliation'],
                     'payment_notes' => $affiliateData['observations_payment'],
                     'updated_at' => now(),
@@ -276,20 +285,17 @@ final class EtlMigrateExcelCommand extends Command
             }
 
             // Novelty from Excel (ING, RET, etc.) → afl_novelties
-            if ($noveltyRaw !== null && $noveltyRaw !== '') {
-                $noveltyCode = $this->extractNoveltyCode($noveltyRaw);
-                if ($noveltyCode !== null) {
-                    DB::table('afl_novelties')->insert([
-                        'affiliate_id' => $affiliate->id,
-                        'period_year' => $noveltyDate ? (int) substr($noveltyDate, 0, 4) : 2025,
-                        'period_month' => $noveltyDate ? (int) substr($noveltyDate, 5, 2) : 1,
-                        'novelty_type_code' => $noveltyCode,
-                        'start_date' => $noveltyDate,
-                        'notes' => "ETL Excel fila {$rowNum}: {$noveltyRaw}",
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
+            if ($noveltyRaw !== null && $noveltyRaw !== '' && $noveltyCode !== null) {
+                DB::table('afl_novelties')->insert([
+                    'affiliate_id' => $affiliate->id,
+                    'period_year' => $noveltyDate ? (int) substr($noveltyDate, 0, 4) : 2025,
+                    'period_month' => $noveltyDate ? (int) substr($noveltyDate, 5, 2) : 1,
+                    'novelty_type_code' => $noveltyCode,
+                    'start_date' => $noveltyDate,
+                    'notes' => "ETL Excel fila {$rowNum}: {$noveltyRaw}",
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         });
 
@@ -297,6 +303,25 @@ final class EtlMigrateExcelCommand extends Command
         if ($this->imported % 100 === 0) {
             $this->output->write('.');
         }
+    }
+
+    private function resolveStatusId(string $excelStatus): ?int
+    {
+        $map = [
+            'ACTIVO' => 'AFILIADO',
+            'RETIRADO' => 'RETIRADO',
+            'INACTIVO' => 'INACTIVO',
+        ];
+
+        $code = $map[$excelStatus] ?? 'AFILIADO';
+
+        if (! isset($this->statusIdCache[$code])) {
+            $this->statusIdCache[$code] = DB::table('cfg_affiliate_statuses')
+                ->where('code', $code)
+                ->value('id');
+        }
+
+        return $this->statusIdCache[$code];
     }
 
     // ── Transformation helpers ──
@@ -522,7 +547,7 @@ final class EtlMigrateExcelCommand extends Command
     private function extractCredentials(array $c): array
     {
         return [
-            ['portal' => 'OPERATOR', 'user' => $this->clean($this->val($c, 26)), 'pass' => $this->clean($this->val($c, 27))],
+            ['portal' => 'OPERATOR_PILA', 'user' => $this->clean($this->val($c, 26)), 'pass' => $this->clean($this->val($c, 27))],
             ['portal' => 'ARL', 'user' => $this->clean($this->val($c, 31)), 'pass' => $this->clean($this->val($c, 32))],
             ['portal' => 'CCF', 'user' => $this->clean($this->val($c, 34)), 'pass' => $this->clean($this->val($c, 35))],
             ['portal' => 'EPS', 'user' => $this->clean($this->val($c, 37)), 'pass' => $this->clean($this->val($c, 38))],
