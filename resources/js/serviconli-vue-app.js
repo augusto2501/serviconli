@@ -12,6 +12,8 @@ import AsesoresPage from './serviconli/vue/pages/AsesoresPage.vue';
 import TercerosPage from './serviconli/vue/pages/TercerosPage.vue';
 import DashboardPage from './serviconli/vue/pages/DashboardPage.vue';
 import DocumentosPage from './serviconli/vue/pages/DocumentosPage.vue';
+import ComisionesPage from './serviconli/vue/pages/ComisionesPage.vue';
+import IncapacidadesPage from './serviconli/vue/pages/IncapacidadesPage.vue';
 
 const PAGE_COMPONENT = {
     login: LoginPage,
@@ -26,6 +28,8 @@ const PAGE_COMPONENT = {
     terceros: TercerosPage,
     dashboard: DashboardPage,
     documentos: DocumentosPage,
+    comisiones: ComisionesPage,
+    incapacidades: IncapacidadesPage,
 };
 
 document.addEventListener('DOMContentLoaded', () => {

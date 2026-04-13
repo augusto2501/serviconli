@@ -71,4 +71,48 @@ class CommissionTest extends TestCase
             'status' => 'PAGADA',
         ])->assertOk()->assertJsonPath('status', 'PAGADA');
     }
+
+    public function test_index_lists_commissions_with_filters(): void
+    {
+        $advisor = Advisor::query()->create([
+            'code' => 'AS-IX',
+            'first_name' => 'Idx',
+            'commission_new' => 1,
+            'commission_recurring' => 1,
+            'authorizes_credits' => false,
+        ]);
+
+        $person = Person::query()->create([
+            'document_number' => '880011',
+            'first_name' => 'N',
+            'first_surname' => 'M',
+            'gender' => 'F',
+            'address' => 'Addr',
+        ]);
+
+        $affiliate = Affiliate::query()->create([
+            'person_id' => $person->id,
+            'client_type' => AffiliateClientType::SERVICONLI,
+        ]);
+
+        AdvisorCommission::query()->create([
+            'public_number' => 'CE-2026-0001',
+            'advisor_id' => $advisor->id,
+            'affiliate_id' => $affiliate->id,
+            'enrollment_process_id' => null,
+            'reentry_process_id' => null,
+            'commission_type' => 'NEW',
+            'amount_pesos' => 10_000,
+            'status' => 'CALCULADA',
+        ]);
+
+        $this->getJson('/api/advisor-commissions')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.publicNumber', 'CE-2026-0001')
+            ->assertJsonPath('data.0.status', 'CALCULADA');
+
+        $this->getJson('/api/advisor-commissions?status=PAGADA')->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/advisor-commissions?advisor_id='.$advisor->id)->assertJsonPath('meta.total', 1);
+    }
 }

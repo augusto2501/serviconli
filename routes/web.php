@@ -33,7 +33,9 @@ Route::view('/cuadre-caja', 'cash.reconciliation')->name('cash.reconciliation');
 
 // Sprint I — Asesores y terceros (UI)
 Route::view('/asesores', 'advisors.index')->name('advisors.ui');
+Route::view('/comisiones', 'advisors.comisiones')->name('advisors.comisiones.ui');
 Route::view('/terceros', 'third_parties.index')->name('third_parties.ui');
+Route::view('/incapacidades', 'disabilities.index')->name('disabilities.ui');
 
 // Sprint K — Dashboard y documentos (UI)
 Route::view('/dashboard', 'dashboard.index')->name('dashboard.ui');
