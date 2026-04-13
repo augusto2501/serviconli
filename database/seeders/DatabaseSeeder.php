@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,9 +17,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // En Cloud producción se suele instalar sin --dev, por lo que Faker no está disponible.
-        // Evitamos factories aquí y creamos un usuario de arranque idempotente.
-        User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
@@ -27,6 +26,10 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        if (Role::where('name', 'ADMIN')->exists() && ! $user->hasRole('ADMIN')) {
+            $user->assignRole('ADMIN');
+        }
+
         $this->call([
             RegulatoryParameterSeeder::class,
             PaymentCalendarRuleSeeder::class,
@@ -34,7 +37,8 @@ class DatabaseSeeder extends Seeder
             ColombianHoliday2026Seeder::class,
             ContributorTypeSeeder::class,
             ContributorTypeSubsystemSeeder::class,
-            SampleAffiliatesSeeder::class,
+            ExcelCatalogSeeder::class,
+            ExcelEtlSeeder::class,
         ]);
     }
 }
