@@ -18,7 +18,9 @@
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
             <a href="{{ url('/') }}" class="font-serif-svc text-xl font-bold text-stone-900 no-underline">{{ config('app.name') }}</a>
             <nav class="flex flex-wrap items-center gap-3 text-sm font-medium" aria-label="Aplicación">
+                <a href="{{ url('/dashboard') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Dashboard</a>
                 <a href="{{ url('/mis-afiliados') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Afiliados</a>
+                <a href="{{ url('/documentos') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Documentos</a>
                 <a href="{{ url('/liquidacion-lotes') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Lotes PILA</a>
                 <a href="{{ url('/generar-pila') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Archivo PILA</a>
                 <a href="{{ url('/cartera') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Cartera</a>

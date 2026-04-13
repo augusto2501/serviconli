@@ -10,6 +10,8 @@ import CarteraPage from './serviconli/vue/pages/CarteraPage.vue';
 import CuadreCajaPage from './serviconli/vue/pages/CuadreCajaPage.vue';
 import AsesoresPage from './serviconli/vue/pages/AsesoresPage.vue';
 import TercerosPage from './serviconli/vue/pages/TercerosPage.vue';
+import DashboardPage from './serviconli/vue/pages/DashboardPage.vue';
+import DocumentosPage from './serviconli/vue/pages/DocumentosPage.vue';
 
 const PAGE_COMPONENT = {
     login: LoginPage,
@@ -22,6 +24,8 @@ const PAGE_COMPONENT = {
     'cuadre-caja': CuadreCajaPage,
     asesores: AsesoresPage,
     terceros: TercerosPage,
+    dashboard: DashboardPage,
+    documentos: DocumentosPage,
 };
 
 document.addEventListener('DOMContentLoaded', () => {

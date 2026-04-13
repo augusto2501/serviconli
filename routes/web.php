@@ -35,4 +35,8 @@ Route::view('/cuadre-caja', 'cash.reconciliation')->name('cash.reconciliation');
 Route::view('/asesores', 'advisors.index')->name('advisors.ui');
 Route::view('/terceros', 'third_parties.index')->name('third_parties.ui');
 
+// Sprint K — Dashboard y documentos (UI)
+Route::view('/dashboard', 'dashboard.index')->name('dashboard.ui');
+Route::view('/documentos', 'documents.index')->name('documents.ui');
+
 Route::get('/ai/probe', AiProbeController::class);
