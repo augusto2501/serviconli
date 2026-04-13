@@ -66,6 +66,18 @@ const arlRiskClasses = [
     { value: 5, label: 'Clase V – Riesgo Máximo' },
 ];
 
+const paymentMethodOptions = computed(() => {
+    if (paymentMethods.value.length) {
+        return paymentMethods.value;
+    }
+    return [
+        { code: 'EFECTIVO', label: 'Efectivo en caja' },
+        { code: 'CONSIGNACION', label: 'Consignación bancaria' },
+        { code: 'CREDITO', label: 'Crédito (cartera)' },
+        { code: 'CUENTA_COBRO', label: 'Cuenta de cobro (patronal)' },
+    ];
+});
+
 const showBankFields = computed(() => form.payment_method === 'CONSIGNACION');
 
 function formatCurrency(value) {
@@ -140,7 +152,7 @@ async function fetchPreview() {
         }
         preview.value = data;
         error.value = '';
-    } catch (e) {
+    } catch {
         preview.value = null;
     } finally {
         previewLoading.value = false;
@@ -217,272 +229,214 @@ onMounted(() => {
 
 <template>
     <div class="flex flex-col gap-6">
-        <!-- Header -->
         <div>
-            <h1 class="font-serif-svc text-2xl font-bold text-stone-900">
-                Aporte Individual
-            </h1>
-            <p class="text-sm text-stone-600 mt-1">
-                Flujo 3 — Liquidación y pago de seguridad social individual.
-            </p>
+            <h1 class="font-serif-svc text-2xl font-bold text-stone-900">Aporte individual</h1>
+            <p class="mt-1 text-sm text-stone-600">Flujo 3 — Liquidación y pago de seguridad social.</p>
         </div>
 
-        <v-progress-linear v-if="loading" indeterminate color="teal-darken-3" />
+        <div v-if="loading" class="h-1 w-full animate-pulse rounded bg-teal-200" />
 
-        <!-- Error / Success -->
-        <v-alert v-if="error" type="error" variant="tonal" closable @click:close="error = ''">{{ error }}</v-alert>
-        <v-alert v-if="success" type="success" variant="tonal" closable @click:close="success = ''">{{ success }}</v-alert>
-        <v-alert v-for="(alert, i) in alerts" :key="i" type="warning" variant="tonal" class="mt-1">{{ alert }}</v-alert>
+        <div v-if="error" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{{ error }}</div>
+        <div v-if="success" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{ success }}</div>
+        <div v-for="(alert, i) in alerts" :key="i" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-950">
+            {{ alert }}
+        </div>
 
-        <!-- Datos del afiliado -->
-        <v-card v-if="affiliate" class="rounded-xl border border-stone-200/90 bg-white/90">
-            <v-card-title class="text-stone-800 text-lg">Afiliado</v-card-title>
-            <v-card-text class="flex flex-wrap gap-6 text-sm">
-                <div><strong>Documento:</strong> {{ affiliate.document_number }}</div>
-                <div><strong>Nombre:</strong> {{ affiliate.full_name }}</div>
-                <div><strong>Estado:</strong> {{ affiliate.status_code }}</div>
-                <div><strong>Mora:</strong> {{ affiliate.mora_status || 'N/A' }}</div>
-            </v-card-text>
-        </v-card>
+        <section v-if="affiliate" class="rounded-2xl border border-stone-200/90 bg-white/90 p-5 shadow-sm">
+            <h2 class="text-lg font-semibold text-stone-800">Afiliado</h2>
+            <div class="mt-3 flex flex-wrap gap-6 text-sm">
+                <div><strong class="text-stone-600">Documento:</strong> {{ affiliate.document_number }}</div>
+                <div><strong class="text-stone-600">Nombre:</strong> {{ affiliate.full_name }}</div>
+                <div><strong class="text-stone-600">Estado:</strong> {{ affiliate.status_code }}</div>
+                <div><strong class="text-stone-600">Mora:</strong> {{ affiliate.mora_status || 'N/A' }}</div>
+            </div>
+        </section>
 
         <template v-if="!loading && affiliate">
-            <!-- Formulario -->
-            <v-card class="rounded-xl border border-stone-200/90 bg-white/90">
-                <v-card-title class="text-stone-800 text-lg">Datos de Cotización</v-card-title>
-                <v-card-text>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <v-select
+            <section class="rounded-2xl border border-stone-200/90 bg-white/90 p-5 shadow-sm">
+                <h2 class="text-lg font-semibold text-stone-800">Datos de cotización</h2>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Tipo de cotizante</label>
+                        <select
                             v-model="form.contributor_type_code"
-                            :items="contributorTypes"
-                            item-value="code"
-                            item-title="label"
-                            label="Tipo de cotizante"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-select
-                            v-model="form.arl_risk_class"
-                            :items="arlRiskClasses"
-                            item-value="value"
-                            item-title="label"
-                            label="Clase de riesgo ARL"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-text-field
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/20"
+                        >
+                            <option v-for="t in contributorTypes" :key="t.code" :value="t.code">{{ t.label }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Clase de riesgo ARL</label>
+                        <select
+                            v-model.number="form.arl_risk_class"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/20"
+                        >
+                            <option v-for="c in arlRiskClasses" :key="c.value" :value="c.value">{{ c.label }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Salario / IBC (pesos)</label>
+                        <input
                             v-model.number="form.salary_pesos"
-                            label="Salario / IBC (pesos)"
                             type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :rules="[v => v > 0 || 'Requerido']"
-                        />
-                        <v-text-field
-                            v-model.number="form.period_year"
-                            label="Año"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="2020"
-                            :max="2100"
-                        />
-                        <v-text-field
-                            v-model.number="form.period_month"
-                            label="Mes"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="1"
-                            :max="12"
-                        />
-                        <v-text-field
-                            v-model.number="form.days_eps"
-                            label="Días EPS"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="1"
-                            :max="30"
-                        />
-                        <v-text-field
-                            v-model.number="form.days_afp"
-                            label="Días AFP"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="0"
-                            :max="30"
-                        />
-                        <v-text-field
-                            v-model.number="form.days_arl"
-                            label="Días ARL"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="0"
-                            :max="30"
-                        />
-                        <v-text-field
-                            v-model.number="form.days_ccf"
-                            label="Días CCF"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="0"
-                            :max="30"
-                        />
-                        <v-text-field
-                            v-model.number="form.admin_fee_pesos"
-                            label="Tarifa administración ($)"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                            :min="0"
+                            min="1"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
                         />
                     </div>
-                </v-card-text>
-            </v-card>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Año</label>
+                        <input v-model.number="form.period_year" type="number" min="2020" max="2100" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Mes</label>
+                        <input v-model.number="form.period_month" type="number" min="1" max="12" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Días EPS</label>
+                        <input v-model.number="form.days_eps" type="number" min="1" max="30" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Días AFP</label>
+                        <input v-model.number="form.days_afp" type="number" min="0" max="30" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Días ARL</label>
+                        <input v-model.number="form.days_arl" type="number" min="0" max="30" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Días CCF</label>
+                        <input v-model.number="form.days_ccf" type="number" min="0" max="30" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Tarifa administración ($)</label>
+                        <input v-model.number="form.admin_fee_pesos" type="number" min="0" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                </div>
+            </section>
 
-            <!-- Preview en tiempo real -->
-            <v-card class="rounded-xl border border-teal-200 bg-teal-50/30">
-                <v-card-title class="text-teal-800 text-lg flex items-center gap-2">
-                    Liquidación en Tiempo Real
-                    <v-progress-circular v-if="previewLoading" indeterminate size="18" width="2" color="teal-darken-3" />
-                </v-card-title>
-                <v-card-text v-if="preview">
-                    <div class="text-sm text-stone-600 mb-2">Período: {{ periodLabel }}</div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
-                            <div class="text-stone-500">IBC Redondeado</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.ibc_rounded_pesos) }}</div>
+            <section class="rounded-2xl border border-teal-200 bg-teal-50/40 p-5 shadow-sm">
+                <h2 class="flex items-center gap-2 text-lg font-semibold text-teal-900">
+                    Liquidación en tiempo real
+                    <span v-if="previewLoading" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-teal-800 border-t-transparent" />
+                </h2>
+                <template v-if="preview">
+                    <p class="mt-2 text-sm text-stone-600">Período: {{ periodLabel }}</p>
+                    <div class="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
+                            <div class="text-stone-500">IBC redondeado</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.ibc_rounded_pesos) }}</div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
                             <div class="text-stone-500">Salud</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.subsystems?.health_total_pesos) }}</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.subsystems?.health_total_pesos) }}</div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
                             <div class="text-stone-500">Pensión</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.subsystems?.pension_total_pesos) }}</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.subsystems?.pension_total_pesos) }}</div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
                             <div class="text-stone-500">ARL</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.subsystems?.arl_total_pesos) }}</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.subsystems?.arl_total_pesos) }}</div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
                             <div class="text-stone-500">CCF</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.subsystems?.ccf_total_pesos) }}</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.subsystems?.ccf_total_pesos) }}</div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
-                            <div class="text-stone-500">Fondo Solidaridad</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.subsystems?.solidarity_fund_pesos) }}</div>
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
+                            <div class="text-stone-500">Fondo solidaridad</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.subsystems?.solidarity_fund_pesos) }}</div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
                             <div class="text-stone-500">Mora</div>
-                            <div class="text-lg font-semibold" :class="preview.subsystems?.mora_interest_pesos > 0 ? 'text-red-600' : 'text-stone-900'">
+                            <div
+                                class="text-lg font-semibold"
+                                :class="preview.subsystems?.mora_interest_pesos > 0 ? 'text-red-600' : 'text-stone-900'"
+                            >
                                 {{ formatCurrency(preview.subsystems?.mora_interest_pesos) }}
                             </div>
                         </div>
-                        <div class="bg-white rounded-lg p-3 border border-stone-200">
+                        <div class="rounded-lg border border-stone-200 bg-white p-3">
                             <div class="text-stone-500">Admin</div>
-                            <div class="text-lg font-semibold text-stone-900">{{ formatCurrency(preview.subsystems?.admin_fee_pesos) }}</div>
+                            <div class="text-lg font-semibold">{{ formatCurrency(preview.subsystems?.admin_fee_pesos) }}</div>
                         </div>
-                        <div class="bg-teal-100 rounded-lg p-3 border border-teal-300">
-                            <div class="text-teal-700 font-semibold">TOTAL A PAGAR</div>
-                            <div class="text-xl font-bold text-teal-900">{{ formatCurrency(preview.total_pesos) }}</div>
+                        <div class="rounded-lg border border-teal-300 bg-teal-100 p-3">
+                            <div class="font-semibold text-teal-800">Total a pagar</div>
+                            <div class="text-xl font-bold text-teal-950">{{ formatCurrency(preview.total_pesos) }}</div>
                         </div>
                     </div>
-                </v-card-text>
-                <v-card-text v-else class="text-sm text-stone-500">
-                    Ingrese los datos de cotización para ver la liquidación.
-                </v-card-text>
-            </v-card>
+                </template>
+                <p v-else class="mt-3 text-sm text-stone-500">Ingrese salario y período para ver la liquidación.</p>
+            </section>
 
-            <!-- Medio de Pago -->
-            <v-card class="rounded-xl border border-stone-200/90 bg-white/90">
-                <v-card-title class="text-stone-800 text-lg">Medio de Pago</v-card-title>
-                <v-card-text>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <v-select
+            <section class="rounded-2xl border border-stone-200/90 bg-white/90 p-5 shadow-sm">
+                <h2 class="text-lg font-semibold text-stone-800">Medio de pago</h2>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Medio</label>
+                        <select
                             v-model="form.payment_method"
-                            :items="paymentMethods.length ? paymentMethods : [
-                                { code: 'EFECTIVO', label: 'Efectivo en caja' },
-                                { code: 'CONSIGNACION', label: 'Consignación bancaria' },
-                                { code: 'CREDITO', label: 'Crédito (cartera)' },
-                                { code: 'CUENTA_COBRO', label: 'Cuenta de cobro (patronal)' },
-                            ]"
-                            item-value="code"
-                            item-title="label"
-                            label="Medio de pago"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-textarea
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+                        >
+                            <option v-for="pm in paymentMethodOptions" :key="pm.code" :value="pm.code">{{ pm.label }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Observaciones</label>
+                        <textarea
                             v-model="form.notes"
-                            label="Observaciones"
-                            variant="outlined"
-                            density="comfortable"
-                            rows="2"
-                            auto-grow
+                            rows="3"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
                         />
                     </div>
-
-                    <!-- Campos Consignación -->
-                    <div v-if="showBankFields" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <v-text-field
-                            v-model="form.bank_name"
-                            label="Nombre del banco"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-text-field
-                            v-model="form.bank_reference"
-                            label="Referencia / No. consignación"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-text-field
-                            v-model.number="form.bank_amount"
-                            label="Monto consignado ($)"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-select
-                            v-model="form.bank_deposit_type"
-                            :items="[{ value: 'LOCAL', title: 'Local' }, { value: 'NACIONAL', title: 'Nacional' }]"
-                            label="Tipo de depósito"
-                            variant="outlined"
-                            density="comfortable"
-                        />
+                </div>
+                <div v-if="showBankFields" class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Banco</label>
+                        <input v-model="form.bank_name" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
                     </div>
-                </v-card-text>
-            </v-card>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Referencia</label>
+                        <input v-model="form.bank_reference" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Monto consignado</label>
+                        <input v-model.number="form.bank_amount" type="number" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Tipo depósito</label>
+                        <select v-model="form.bank_deposit_type" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+                            <option value="LOCAL">Local</option>
+                            <option value="NACIONAL">Nacional</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
 
-            <!-- Resultado guardado -->
-            <v-card v-if="saveResult" class="rounded-xl border border-green-200 bg-green-50/50">
-                <v-card-title class="text-green-800 text-lg">Resultado</v-card-title>
-                <v-card-text class="text-sm">
-                    <div><strong>No. Liquidación:</strong> {{ saveResult.liquidation?.public_id }}</div>
-                    <div><strong>Total Pagado:</strong> {{ formatCurrency(saveResult.liquidation?.total_pesos) }}</div>
+            <section v-if="saveResult" class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
+                <h2 class="text-lg font-semibold text-emerald-900">Resultado</h2>
+                <dl class="mt-3 space-y-1 text-sm">
+                    <div><strong>Liquidación:</strong> {{ saveResult.liquidation?.public_id }}</div>
+                    <div><strong>Total pagado:</strong> {{ formatCurrency(saveResult.liquidation?.total_pesos) }}</div>
                     <div><strong>Recibo:</strong> {{ saveResult.payment?.receipt_id }}</div>
-                    <div><strong>Estado Pago:</strong> {{ saveResult.payment?.message }}</div>
-                </v-card-text>
-            </v-card>
+                    <div><strong>Estado pago:</strong> {{ saveResult.payment?.message }}</div>
+                </dl>
+            </section>
 
-            <!-- Botón Guardar -->
-            <div class="flex justify-end gap-3">
-                <v-btn variant="outlined" color="stone" :href="`/afiliados/${affiliateId}/ficha`">
+            <div class="flex flex-wrap justify-end gap-3">
+                <a
+                    :href="`/afiliados/${affiliateId}/ficha`"
+                    class="inline-flex rounded-xl border border-stone-300 px-4 py-2.5 text-sm font-medium text-stone-800 hover:bg-stone-50"
+                >
                     Volver a ficha
-                </v-btn>
-                <v-btn
-                    color="teal-darken-3"
-                    size="large"
-                    :loading="saving"
+                </a>
+                <button
+                    type="button"
+                    class="inline-flex rounded-xl bg-teal-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-900 disabled:opacity-50"
                     :disabled="!preview || saving"
                     @click="submit"
                 >
-                    Guardar Aporte
-                </v-btn>
+                    {{ saving ? 'Guardando…' : 'Guardar aporte' }}
+                </button>
             </div>
         </template>
     </div>

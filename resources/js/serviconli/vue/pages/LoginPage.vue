@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { getToken, setToken } from '../api';
+import UiButton from '../components/UiButton.vue';
 
 if (getToken()) {
     window.location.replace('/mis-afiliados');
@@ -44,21 +45,44 @@ async function submit() {
 </script>
 
 <template>
-    <v-container class="max-w-xl">
-        <h1 class="font-serif-svc text-3xl font-bold text-stone-900 mb-2">Iniciar sesión</h1>
-        <p class="text-sm text-stone-600 mb-6">Accede con el mismo usuario que usa la API (Sanctum).</p>
+    <div class="mx-auto w-full max-w-md">
+        <h1 class="font-serif-svc text-3xl font-bold text-stone-900">Iniciar sesión</h1>
+        <p class="mt-2 text-sm text-stone-600">Accede con el usuario de la API (Laravel Sanctum).</p>
 
-        <v-card class="rounded-xl border border-stone-200/90 bg-white/90">
-            <v-card-text class="space-y-4">
-                <v-text-field v-model="email" label="Correo" type="email" variant="outlined" density="comfortable" />
-                <v-text-field v-model="password" label="Contraseña" type="password" variant="outlined" density="comfortable" />
-                <v-alert v-if="error" type="error" variant="tonal" density="compact">{{ error }}</v-alert>
-                <v-btn block color="teal-darken-3" :loading="loading" @click="submit">Entrar</v-btn>
-            </v-card-text>
-        </v-card>
+        <form
+            class="mt-8 space-y-4 rounded-2xl border border-stone-200/90 bg-white/90 p-6 shadow-sm"
+            @submit.prevent="submit"
+        >
+            <div>
+                <label for="svc-email" class="mb-1 block text-sm font-medium text-stone-700">Correo</label>
+                <input
+                    id="svc-email"
+                    v-model="email"
+                    type="email"
+                    autocomplete="username"
+                    required
+                    class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-stone-900 shadow-sm outline-none ring-teal-700/20 transition focus:border-teal-700 focus:ring-2"
+                />
+            </div>
+            <div>
+                <label for="svc-pass" class="mb-1 block text-sm font-medium text-stone-700">Contraseña</label>
+                <input
+                    id="svc-pass"
+                    v-model="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-stone-900 shadow-sm outline-none ring-teal-700/20 transition focus:border-teal-700 focus:ring-2"
+                />
+            </div>
+            <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{{ error }}</p>
+            <UiButton type="submit" variant="primary" size="lg" block :loading="loading">
+                {{ loading ? 'Entrando…' : 'Entrar' }}
+            </UiButton>
+        </form>
 
-        <p class="mt-6 text-center text-xs text-stone-500">
-            <a href="/" class="text-teal-800 hover:underline">Volver al inicio</a>
+        <p class="mt-8 text-center text-xs text-stone-500">
+            <a href="/" class="text-teal-800 underline decoration-teal-800/30 hover:decoration-teal-800">Volver al inicio</a>
         </p>
-    </v-container>
+    </div>
 </template>

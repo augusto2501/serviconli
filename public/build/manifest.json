@@ -1,10 +1,6 @@
 {
-  "_chunk-DHX7O8uR.js": {
-    "file": "assets/chunk-DHX7O8uR.js",
-    "name": "chunk"
-  },
   "resources/css/app.css": {
-    "file": "assets/app-DBFCZ1oC.css",
+    "file": "assets/app-CV6QE4JW.css",
     "name": "app",
     "names": [
       "app.css"
@@ -13,24 +9,15 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-C-36BfWX.js",
+    "file": "assets/app-BU6mFzGd.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true,
-    "imports": [
-      "_chunk-DHX7O8uR.js"
-    ]
+    "isEntry": true
   },
   "resources/js/serviconli-vue-app.js": {
-    "file": "assets/serviconli-vue-app-D_SBmTa-.js",
+    "file": "assets/serviconli-vue-app-iQKSuor7.js",
     "name": "serviconli-vue-app",
     "src": "resources/js/serviconli-vue-app.js",
-    "isEntry": true,
-    "imports": [
-      "_chunk-DHX7O8uR.js"
-    ],
-    "css": [
-      "assets/serviconli-vue-app-BTtpvBrc.css"
-    ]
+    "isEntry": true
   }
 }

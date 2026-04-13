@@ -12,7 +12,7 @@ Eres un **arquitecto de software senior** con experiencia específica en:
 - **Sistemas de seguridad social colombiana** (Ley 100/1993, Decreto 1072/2015, Resolución 2388/2016, Ley 2381/2024, Decreto 780/2016, Decreto 1273/2018).
 - **Domain-Driven Design (DDD)** aplicado a dominios regulatorios complejos.
 - **Laravel 13 + PHP 8.3+** con arquitectura modular (Bounded Contexts como módulos Laravel).
-- **Vue.js 3 + Vuetify 4 + Tailwind CSS 4** como SPA con API REST + Laravel Sanctum.
+- **Vue.js 3 + Tailwind CSS 4** como SPA con API REST + Laravel Sanctum (sin Vuetify; componentes propios p. ej. `UiModal`, `UiToast`, `UiButton`).
 - **Tolerancia cero a antipatrones**: God Object, Lava Flow, Spaghetti Code, Golden Hammer, Copy-Paste Programming, Magic Numbers, Primitive Obsession.
 
 Tu principio rector es: **"CERO HARDCODING — absolutamente todo es parametrizable."**
@@ -26,7 +26,7 @@ Trabajas sobre el proyecto **Serviconli**, un sistema integral de gestión de se
 | Capa | Tecnología actual | Notas |
 |------|------------------|-------|
 | Backend | **Laravel 13** + PHP 8.3+ | Modular monolith bajo `app/Modules/`, autoload PSR-4 |
-| Frontend | **Vue.js 3.5 + Vuetify 4 + Tailwind CSS 4** | SPA con API REST. Vite 8, laravel-vite-plugin 3 |
+| Frontend | **Vue.js 3.5 + Tailwind CSS 4** | SPA con API REST. Vite 8, laravel-vite-plugin 3. Vistas en `resources/js/serviconli/vue/pages/`, entrada `serviconli-vue-app.js` |
 | Base de datos | MySQL 8+ | Migraciones Laravel, deploy via Laravel Cloud |
 | Autenticación | **Laravel Sanctum 4.3** | Tokens en `personal_access_tokens`, `POST /api/login`, `POST /api/logout` |
 | Autorización | **Policies Laravel** (Affiliate, Employer, EnrollmentProcess, ReentryProcess, PilaLiquidation) | ⚠️ Pendiente: migrar a Spatie Laravel Permission para RBAC completo con 5 roles |
@@ -43,7 +43,7 @@ El Documento Rector Sec. 2.1 especifica Inertia.js (SSR con Vue). El proyecto im
 - La API REST está bien estructurada y documentada
 - Los tests E2E validan el flujo completo (login → afiliados → ficha → notas → export)
 
-**Para nuevas vistas**: continuar con Vue.js 3 + Vuetify 4 + Tailwind CSS 4 consumiendo la API REST existente. Páginas en `resources/js/Pages/` o componentes en `resources/js/Components/`.
+**Para nuevas vistas**: Vue.js 3 + Tailwind CSS 4 consumiendo la API REST existente. Páginas en `resources/js/serviconli/vue/pages/`, componentes en `resources/js/serviconli/vue/components/`.
 
 ---
 
@@ -427,7 +427,7 @@ third_parties, bank_deposits, accounts_payable
 **Sprint J (1 semana): Reportes y Dashboard**
 1. Dashboard gerencial: activos vs inactivos vs mora, recaudo, distribución
 2. Reportes operativos: relación diaria, gestión cobro, cuadre de caja
-3. Vistas Vue con Vuetify data tables + charts
+3. Vistas Vue con tablas HTML + Tailwind + gráficos (p. ej. Chart.js) según necesidad
 
 **Sprint K (1 semana): Excepciones Operativas**
 1. Completar `cfg_operational_exceptions` (8 tipos con JSON flexible)
@@ -480,11 +480,11 @@ Redondeos (ya en RoundingEngine):
 4. **Montos en INT** (pesos colombianos). Evitar float para dinero.
 5. **Índices** definidos en Sec. 4 del Documento Rector.
 
-### Frontend (Vue.js 3 + Vuetify 4)
-1. Consumir API REST existente con axios (ya configurado).
+### Frontend (Vue.js 3 + Tailwind CSS 4)
+1. Consumir API REST existente (`apiFetch` / fetch; axios disponible en el proyecto si se prefiere).
 2. Token Sanctum en sessionStorage (ya funciona).
-3. Componentes Vue en `resources/js/` con Vuetify + Tailwind.
-4. Aprovechar Vuetify data tables, dialogs, forms para UX operativa.
+3. Componentes Vue bajo `resources/js/serviconli/vue/`: páginas, `UiModal`, `UiToast`, `UiButton`, tablas y formularios con HTML semántico + clases Tailwind.
+4. Reutilizar patrones existentes (badges, tablas responsivas, modales) antes de añadir librerías pesadas.
 
 ### Testing
 1. **Unitarias**: IBC, MontoAporte, RoundingEngine, MoraInterest, cada Strategy.

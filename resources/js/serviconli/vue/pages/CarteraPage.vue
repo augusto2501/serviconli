@@ -1,13 +1,21 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { apiFetch, requireAuth, logoutAndRedirect } from '../api';
+import UiModal from '../components/UiModal.vue';
+import UiToast from '../components/UiToast.vue';
 
 const activeTab = ref('cuentas');
-const snackbar = reactive({ show: false, text: '', color: 'teal-darken-3' });
+
+const toast = reactive({ show: false, text: '', variant: 'info' });
+let toastTimer = null;
 function notify(text, color = 'teal-darken-3') {
-    snackbar.text = text;
-    snackbar.color = color;
-    snackbar.show = true;
+    toast.text = text;
+    toast.variant = color === 'error' ? 'error' : 'info';
+    toast.show = true;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.show = false;
+    }, 4000);
 }
 
 async function jsonOrMessage(res) {
@@ -25,26 +33,6 @@ async function jsonOrMessage(res) {
 // --- Cuentas de Cobro ---
 const cuentas = ref([]);
 const loadingCuentas = ref(false);
-const cuentaHeaders = [
-    { title: 'Número', key: 'cuenta_number' },
-    { title: 'Pagador', key: 'payer.razon_social' },
-    { title: 'Período', key: 'period_cobro' },
-    { title: 'Modo', key: 'generation_mode' },
-    { title: 'Total Oportuno', key: 'total_1', align: 'end' },
-    { title: 'Total Mora', key: 'total_2', align: 'end' },
-    { title: 'Estado', key: 'status' },
-    { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
-];
-
-const detailHeaders = [
-    { title: 'Afiliado', key: 'affiliate_id' },
-    { title: 'Salud', key: 'health_pesos', align: 'end' },
-    { title: 'Pensión', key: 'pension_pesos', align: 'end' },
-    { title: 'ARL', key: 'arl_pesos', align: 'end' },
-    { title: 'CCF', key: 'ccf_pesos', align: 'end' },
-    { title: 'Admin', key: 'admin_pesos', align: 'end' },
-    { title: 'Total', key: 'total_pesos', align: 'end' },
-];
 
 const selectedCuenta = ref(null);
 const showCuentaDetail = ref(false);
@@ -62,8 +50,7 @@ async function loadCuentas() {
     }
 }
 
-async function selectCuenta(_e, row) {
-    const item = row?.item;
+async function selectCuenta(item) {
     if (!item) return;
     try {
         const res = await apiFetch(`/cuentas-cobro/${item.id}`);
@@ -208,29 +195,14 @@ async function submitCancelCuenta() {
 const invoices = ref([]);
 const loadingInvoices = ref(false);
 const tiposRecibo = ['AFILIACION', 'APORTE', 'REINGRESO', 'CUENTA', 'CAJA_GENERAL'];
-const invoiceFilter = reactive({ tipo: null, estado: null });
-const invoiceHeaders = [
-    { title: 'Número', key: 'public_number' },
-    { title: 'Fecha', key: 'fecha' },
-    { title: 'Tipo', key: 'tipo' },
-    { title: 'Medio', key: 'payment_method' },
-    { title: 'Total', key: 'total_pesos', align: 'end' },
-    { title: 'Estado', key: 'estado' },
-    { title: 'Acciones', key: 'actions', sortable: false, align: 'end' },
-];
-
-const itemHeaders = [
-    { title: '#', key: 'line_number', width: '48px' },
-    { title: 'Concepto', key: 'concept' },
-    { title: 'Monto', key: 'amount_pesos', align: 'end' },
-];
+const invoiceFilter = reactive({ tipo: '', estado: '' });
 
 async function loadInvoices() {
     loadingInvoices.value = true;
     try {
         const params = new URLSearchParams();
-        if (invoiceFilter.tipo) params.set('tipo', invoiceFilter.tipo);
-        if (invoiceFilter.estado) params.set('estado', invoiceFilter.estado);
+        if (invoiceFilter.tipo !== '') params.set('tipo', invoiceFilter.tipo);
+        if (invoiceFilter.estado !== '') params.set('estado', invoiceFilter.estado);
         const res = await apiFetch(`/invoices?${params}`);
         const data = await jsonOrMessage(res);
         invoices.value = data.data || [];
@@ -244,8 +216,7 @@ async function loadInvoices() {
 const selectedInvoice = ref(null);
 const showInvoiceDetail = ref(false);
 
-async function selectInvoice(_e, row) {
-    const item = row?.item;
+async function selectInvoice(item) {
     if (!item) return;
     try {
         const res = await apiFetch(`/invoices/${item.id}`);
@@ -320,16 +291,26 @@ function formatCurrency(v) {
     );
 }
 
-/** Colores alineados con liquidación por lotes + identidad teal Serviconli */
-function statusColorCuenta(s) {
-    return (
-        {
-            PRE_CUENTA: 'orange',
-            DEFINITIVA: 'teal-darken-2',
-            PAGADA: 'green',
-            ANULADA: 'error',
-        }[s] || 'grey'
-    );
+function periodCobroLabel(row) {
+    if (row.period_cobro) return row.period_cobro;
+    if (row.period_year != null && row.period_month != null) {
+        return `${row.period_year}-${String(row.period_month).padStart(2, '0')}`;
+    }
+    return '—';
+}
+
+function statusBadgeClassCuenta(s) {
+    const map = {
+        PRE_CUENTA: 'bg-orange-100 text-orange-900',
+        DEFINITIVA: 'bg-teal-100 text-teal-900',
+        PAGADA: 'bg-emerald-100 text-emerald-900',
+        ANULADA: 'bg-red-100 text-red-900',
+    };
+    return map[s] || 'bg-stone-100 text-stone-800';
+}
+
+function statusBadgeClassRecibo(estado) {
+    return estado === 'ACTIVO' ? 'bg-teal-100 text-teal-900' : 'bg-red-100 text-red-900';
 }
 
 onMounted(() => {
@@ -345,510 +326,595 @@ onMounted(() => {
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="/mis-afiliados" class="text-sm font-medium text-teal-800 hover:underline">← Mis afiliados</a>
-                <h1 class="font-serif-svc text-2xl font-bold text-stone-900 mt-2">Cartera y facturación</h1>
-                <p class="text-sm text-stone-600 mt-1">Flujos 5, 6 y 7 — Cuentas de cobro y recibos de caja.</p>
+                <h1 class="mt-2 font-serif-svc text-2xl font-bold text-stone-900">Cartera y facturación</h1>
+                <p class="mt-1 text-sm text-stone-600">Flujos 5, 6 y 7 — Cuentas de cobro y recibos de caja.</p>
             </div>
-            <v-btn variant="outlined" color="teal-darken-3" @click="logoutAndRedirect">Cerrar sesión</v-btn>
+            <button
+                type="button"
+                class="rounded-xl border border-teal-800 px-4 py-2 text-sm font-medium text-teal-900 hover:bg-teal-50"
+                @click="logoutAndRedirect"
+            >
+                Cerrar sesión
+            </button>
         </div>
 
-        <v-card class="rounded-xl border border-stone-200/90 bg-white/90 overflow-hidden shadow-none">
-            <v-tabs v-model="activeTab" color="teal-darken-3" slider-color="teal-darken-3" align-tabs="start">
-                <v-tab value="cuentas" class="text-none">Cuentas de cobro</v-tab>
-                <v-tab value="recibos" class="text-none">Recibos de caja</v-tab>
-            </v-tabs>
+        <div class="overflow-hidden rounded-2xl border border-stone-200/90 bg-white/90 shadow-sm">
+            <div class="flex border-b border-stone-200">
+                <button
+                    type="button"
+                    class="px-5 py-3 text-sm font-semibold"
+                    :class="activeTab === 'cuentas' ? 'border-b-2 border-teal-800 text-teal-900' : 'text-stone-600 hover:text-stone-900'"
+                    @click="activeTab = 'cuentas'"
+                >
+                    Cuentas de cobro
+                </button>
+                <button
+                    type="button"
+                    class="px-5 py-3 text-sm font-semibold"
+                    :class="activeTab === 'recibos' ? 'border-b-2 border-teal-800 text-teal-900' : 'text-stone-600 hover:text-stone-900'"
+                    @click="activeTab = 'recibos'"
+                >
+                    Recibos de caja
+                </button>
+            </div>
 
-            <v-window v-model="activeTab">
-                <v-window-item value="cuentas">
-                    <v-card flat class="bg-transparent">
-                        <v-card-title class="text-stone-800 text-lg flex flex-wrap items-center gap-3">
-                            <span>Cuentas de cobro</span>
-                            <v-spacer />
-                            <v-btn color="teal-darken-3" @click="showNewCuenta = true">Nueva cuenta</v-btn>
-                        </v-card-title>
-                        <v-card-text>
-                            <v-data-table
-                                :headers="cuentaHeaders"
-                                :items="cuentas"
-                                :loading="loadingCuentas"
-                                density="comfortable"
-                                class="text-sm"
-                                hover
-                                @click:row="selectCuenta"
+            <div v-show="activeTab === 'cuentas'" class="p-5">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="text-lg font-semibold text-stone-800">Cuentas de cobro</h2>
+                    <button
+                        type="button"
+                        class="rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-900"
+                        @click="showNewCuenta = true"
+                    >
+                        Nueva cuenta
+                    </button>
+                </div>
+                <div v-if="loadingCuentas" class="py-8 text-center text-sm text-stone-500">Cargando…</div>
+                <div v-else class="overflow-x-auto rounded-xl border border-stone-200">
+                    <table class="min-w-full divide-y divide-stone-200 text-sm">
+                        <thead class="bg-stone-50 text-left text-xs font-semibold uppercase tracking-wide text-stone-600">
+                            <tr>
+                                <th class="whitespace-nowrap px-3 py-2">Número</th>
+                                <th class="px-3 py-2">Pagador</th>
+                                <th class="whitespace-nowrap px-3 py-2">Período</th>
+                                <th class="whitespace-nowrap px-3 py-2">Modo</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-end">Total oportuno</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-end">Total mora</th>
+                                <th class="whitespace-nowrap px-3 py-2">Estado</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <tr
+                                v-for="item in cuentas"
+                                :key="item.id"
+                                class="cursor-pointer hover:bg-stone-50/80"
+                                @click="selectCuenta(item)"
                             >
-                                <template #item.total_1="{ item }">
-                                    {{ formatCurrency(item.total_1) }}
-                                </template>
-                                <template #item.total_2="{ item }">
-                                    {{ formatCurrency(item.total_2) }}
-                                </template>
-                                <template #item.status="{ item }">
-                                    <v-chip :color="statusColorCuenta(item.status)" size="small" variant="flat">
+                                <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ item.cuenta_number }}</td>
+                                <td class="px-3 py-2">{{ item.payer?.razon_social || '—' }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">{{ periodCobroLabel(item) }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">{{ item.generation_mode }}</td>
+                                <td class="whitespace-nowrap px-3 py-2 text-end">{{ formatCurrency(item.total_1) }}</td>
+                                <td class="whitespace-nowrap px-3 py-2 text-end">{{ formatCurrency(item.total_2) }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusBadgeClassCuenta(item.status)">
                                         {{ item.status }}
-                                    </v-chip>
-                                </template>
-                                <template #item.actions="{ item }">
-                                    <v-btn
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-2 text-end" @click.stop>
+                                    <button
                                         v-if="item.status === 'PRE_CUENTA'"
-                                        size="small"
-                                        variant="text"
-                                        color="teal-darken-3"
-                                        @click.stop="openDefinitiva(item)"
+                                        type="button"
+                                        class="mr-2 text-xs font-medium text-teal-800 hover:underline"
+                                        @click="openDefinitiva(item)"
                                     >
                                         Definitiva
-                                    </v-btn>
-                                    <v-btn
+                                    </button>
+                                    <button
                                         v-if="item.status === 'DEFINITIVA'"
-                                        size="small"
-                                        variant="text"
-                                        color="teal-darken-3"
-                                        @click.stop="openPay(item)"
+                                        type="button"
+                                        class="mr-2 text-xs font-medium text-teal-800 hover:underline"
+                                        @click="openPay(item)"
                                     >
                                         Pagar
-                                    </v-btn>
-                                    <v-btn
+                                    </button>
+                                    <button
                                         v-if="item.status !== 'PAGADA' && item.status !== 'ANULADA'"
-                                        size="small"
-                                        variant="text"
-                                        color="error"
-                                        @click.stop="openCancelCuenta(item)"
+                                        type="button"
+                                        class="text-xs font-medium text-red-700 hover:underline"
+                                        @click="openCancelCuenta(item)"
                                     >
                                         Anular
-                                    </v-btn>
-                                </template>
-                            </v-data-table>
-                        </v-card-text>
-                    </v-card>
-                </v-window-item>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-                <v-window-item value="recibos">
-                    <v-card flat class="bg-transparent">
-                        <v-card-title class="text-stone-800 text-lg flex flex-wrap items-center gap-3">
-                            <span>Recibos de caja</span>
-                            <v-spacer />
-                            <v-btn color="teal-darken-3" @click="showNewRecibo = true">Nuevo recibo</v-btn>
-                        </v-card-title>
-                        <v-card-text>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                                <v-select
-                                    v-model="invoiceFilter.tipo"
-                                    :items="tiposRecibo"
-                                    label="Tipo"
-                                    clearable
-                                    variant="outlined"
-                                    density="comfortable"
-                                    hide-details
-                                    @update:model-value="loadInvoices"
-                                />
-                                <v-select
-                                    v-model="invoiceFilter.estado"
-                                    :items="['ACTIVO', 'ANULADO']"
-                                    label="Estado"
-                                    clearable
-                                    variant="outlined"
-                                    density="comfortable"
-                                    hide-details
-                                    @update:model-value="loadInvoices"
-                                />
-                            </div>
-                            <v-data-table
-                                :headers="invoiceHeaders"
-                                :items="invoices"
-                                :loading="loadingInvoices"
-                                density="comfortable"
-                                class="text-sm"
-                                hover
-                                @click:row="selectInvoice"
+            <div v-show="activeTab === 'recibos'" class="p-5">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="text-lg font-semibold text-stone-800">Recibos de caja</h2>
+                    <button
+                        type="button"
+                        class="rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-900"
+                        @click="showNewRecibo = true"
+                    >
+                        Nuevo recibo
+                    </button>
+                </div>
+                <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Tipo</label>
+                        <select
+                            v-model="invoiceFilter.tipo"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+                            @change="loadInvoices"
+                        >
+                            <option value="">Todos</option>
+                            <option v-for="t in tiposRecibo" :key="t" :value="t">{{ t }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Estado</label>
+                        <select
+                            v-model="invoiceFilter.estado"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+                            @change="loadInvoices"
+                        >
+                            <option value="">Todos</option>
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="ANULADO">ANULADO</option>
+                        </select>
+                    </div>
+                </div>
+                <div v-if="loadingInvoices" class="py-8 text-center text-sm text-stone-500">Cargando…</div>
+                <div v-else class="overflow-x-auto rounded-xl border border-stone-200">
+                    <table class="min-w-full divide-y divide-stone-200 text-sm">
+                        <thead class="bg-stone-50 text-left text-xs font-semibold uppercase tracking-wide text-stone-600">
+                            <tr>
+                                <th class="whitespace-nowrap px-3 py-2">Número</th>
+                                <th class="whitespace-nowrap px-3 py-2">Fecha</th>
+                                <th class="whitespace-nowrap px-3 py-2">Tipo</th>
+                                <th class="whitespace-nowrap px-3 py-2">Medio</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-end">Total</th>
+                                <th class="whitespace-nowrap px-3 py-2">Estado</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <tr
+                                v-for="item in invoices"
+                                :key="item.id"
+                                class="cursor-pointer hover:bg-stone-50/80"
+                                @click="selectInvoice(item)"
                             >
-                                <template #item.total_pesos="{ item }">
-                                    {{ formatCurrency(item.total_pesos) }}
-                                </template>
-                                <template #item.estado="{ item }">
-                                    <v-chip
-                                        :color="item.estado === 'ACTIVO' ? 'teal-darken-2' : 'error'"
-                                        size="small"
-                                        variant="flat"
-                                    >
+                                <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{{ item.public_number }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">{{ item.fecha }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">{{ item.tipo }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">{{ item.payment_method }}</td>
+                                <td class="whitespace-nowrap px-3 py-2 text-end">{{ formatCurrency(item.total_pesos) }}</td>
+                                <td class="whitespace-nowrap px-3 py-2">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusBadgeClassRecibo(item.estado)">
                                         {{ item.estado }}
-                                    </v-chip>
-                                </template>
-                                <template #item.actions="{ item }">
-                                    <v-btn
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-2 text-end" @click.stop>
+                                    <button
                                         v-if="item.estado === 'ACTIVO'"
-                                        size="small"
-                                        variant="text"
-                                        color="error"
-                                        @click.stop="openCancelInvoice(item)"
+                                        type="button"
+                                        class="text-xs font-medium text-red-700 hover:underline"
+                                        @click="openCancelInvoice(item)"
                                     >
                                         Anular
-                                    </v-btn>
-                                </template>
-                            </v-data-table>
-                        </v-card-text>
-                    </v-card>
-                </v-window-item>
-            </v-window>
-        </v-card>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
         <!-- Detalle cuenta -->
-        <v-dialog v-model="showCuentaDetail" max-width="880" scrollable>
-            <v-card v-if="selectedCuenta" class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800 font-serif-svc text-lg">
-                    Cuenta {{ selectedCuenta.cuenta_number }}
-                </v-card-title>
-                <v-card-text>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm mb-4">
-                        <p><strong class="text-stone-600">Pagador:</strong> {{ selectedCuenta.payer?.razon_social }}</p>
-                        <p>
-                            <strong class="text-stone-600">Período:</strong>
-                            {{ selectedCuenta.period_year }}-{{ String(selectedCuenta.period_month).padStart(2, '0') }}
-                        </p>
-                        <p><strong class="text-stone-600">Modo:</strong> {{ selectedCuenta.generation_mode }}</p>
+        <UiModal v-model="showCuentaDetail" title="" max-width="max-w-4xl">
+            <template v-if="selectedCuenta" #title>Cuenta {{ selectedCuenta.cuenta_number }}</template>
+            <template v-if="selectedCuenta">
+                <div class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                    <p><strong class="text-stone-600">Pagador:</strong> {{ selectedCuenta.payer?.razon_social }}</p>
+                    <p>
+                        <strong class="text-stone-600">Período:</strong>
+                        {{ selectedCuenta.period_year }}-{{ String(selectedCuenta.period_month).padStart(2, '0') }}
+                    </p>
+                    <p><strong class="text-stone-600">Modo:</strong> {{ selectedCuenta.generation_mode }}</p>
+                </div>
+                <hr class="my-4 border-stone-200" />
+                <div class="grid grid-cols-2 gap-2 text-sm md:grid-cols-3 lg:grid-cols-6">
+                    <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
+                        <div class="text-xs text-stone-500">EPS</div>
+                        <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_eps) }}</div>
                     </div>
-                    <v-divider class="border-stone-200 mb-4" />
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-sm mb-4">
-                        <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
-                            <div class="text-stone-500 text-xs">EPS</div>
-                            <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_eps) }}</div>
-                        </div>
-                        <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
-                            <div class="text-stone-500 text-xs">AFP</div>
-                            <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_afp) }}</div>
-                        </div>
-                        <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
-                            <div class="text-stone-500 text-xs">ARL</div>
-                            <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_arl) }}</div>
-                        </div>
-                        <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
-                            <div class="text-stone-500 text-xs">CCF</div>
-                            <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_ccf) }}</div>
-                        </div>
-                        <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
-                            <div class="text-stone-500 text-xs">Admin</div>
-                            <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_admin) }}</div>
-                        </div>
-                        <div class="rounded-lg border border-stone-200 bg-teal-50/80 border-teal-200/80 p-2">
-                            <div class="text-teal-800 text-xs font-medium">Total oportuno</div>
-                            <div class="font-bold text-teal-950">{{ formatCurrency(selectedCuenta.total_1) }}</div>
-                        </div>
+                    <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
+                        <div class="text-xs text-stone-500">AFP</div>
+                        <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_afp) }}</div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-4">
-                        <div class="rounded-lg border border-stone-200 p-2">
-                            <strong class="text-stone-600">Intereses mora:</strong>
-                            {{ formatCurrency(selectedCuenta.interest_mora) }}
-                        </div>
-                        <div class="rounded-lg border border-teal-200 bg-teal-50/50 p-2">
-                            <strong class="text-teal-900">Total con mora:</strong>
-                            {{ formatCurrency(selectedCuenta.total_2) }}
-                        </div>
+                    <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
+                        <div class="text-xs text-stone-500">ARL</div>
+                        <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_arl) }}</div>
                     </div>
-                    <h3 class="text-stone-800 text-base font-semibold mb-2">Detalle por afiliado</h3>
-                    <v-data-table
-                        v-if="selectedCuenta.details"
-                        :headers="detailHeaders"
-                        :items="selectedCuenta.details"
-                        density="compact"
-                        items-per-page="-1"
-                        hide-default-footer
+                    <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
+                        <div class="text-xs text-stone-500">CCF</div>
+                        <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_ccf) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-stone-200 bg-stone-50/80 p-2">
+                        <div class="text-xs text-stone-500">Admin</div>
+                        <div class="font-semibold">{{ formatCurrency(selectedCuenta.total_admin) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-teal-200/80 bg-teal-50/80 p-2">
+                        <div class="text-xs font-medium text-teal-800">Total oportuno</div>
+                        <div class="font-bold text-teal-950">{{ formatCurrency(selectedCuenta.total_1) }}</div>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                    <div class="rounded-lg border border-stone-200 p-2">
+                        <strong class="text-stone-600">Intereses mora:</strong>
+                        {{ formatCurrency(selectedCuenta.interest_mora) }}
+                    </div>
+                    <div class="rounded-lg border border-teal-200 bg-teal-50/50 p-2">
+                        <strong class="text-teal-900">Total con mora:</strong>
+                        {{ formatCurrency(selectedCuenta.total_2) }}
+                    </div>
+                </div>
+                <h3 class="mb-2 mt-4 text-base font-semibold text-stone-800">Detalle por afiliado</h3>
+                <div v-if="selectedCuenta.details" class="overflow-x-auto rounded-lg border border-stone-200">
+                    <table class="min-w-full divide-y divide-stone-200 text-xs sm:text-sm">
+                        <thead class="bg-stone-50 text-left font-semibold text-stone-600">
+                            <tr>
+                                <th class="px-2 py-1.5">Afiliado</th>
+                                <th class="px-2 py-1.5 text-end">Salud</th>
+                                <th class="px-2 py-1.5 text-end">Pensión</th>
+                                <th class="px-2 py-1.5 text-end">ARL</th>
+                                <th class="px-2 py-1.5 text-end">CCF</th>
+                                <th class="px-2 py-1.5 text-end">Admin</th>
+                                <th class="px-2 py-1.5 text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <tr v-for="(d, idx) in selectedCuenta.details" :key="idx">
+                                <td class="px-2 py-1.5">{{ d.affiliate_id }}</td>
+                                <td class="px-2 py-1.5 text-end">{{ formatCurrency(d.health_pesos) }}</td>
+                                <td class="px-2 py-1.5 text-end">{{ formatCurrency(d.pension_pesos) }}</td>
+                                <td class="px-2 py-1.5 text-end">{{ formatCurrency(d.arl_pesos) }}</td>
+                                <td class="px-2 py-1.5 text-end">{{ formatCurrency(d.ccf_pesos) }}</td>
+                                <td class="px-2 py-1.5 text-end">{{ formatCurrency(d.admin_pesos) }}</td>
+                                <td class="px-2 py-1.5 text-end font-medium">{{ formatCurrency(d.total_pesos) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+            <template v-if="selectedCuenta" #footer>
+                <div class="flex justify-end">
+                    <button
+                        type="button"
+                        class="rounded-xl border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50"
+                        @click="showCuentaDetail = false"
                     >
-                        <template #item.total_pesos="{ item }">
-                            {{ formatCurrency(item.total_pesos) }}
-                        </template>
-                    </v-data-table>
-                </v-card-text>
-                <v-card-actions class="border-t border-stone-200/90">
-                    <v-spacer />
-                    <v-btn variant="outlined" color="stone" @click="showCuentaDetail = false">Cerrar</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+                        Cerrar
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Nueva cuenta -->
-        <v-dialog v-model="showNewCuenta" max-width="520">
-            <v-card class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800">Generar cuenta de cobro</v-card-title>
-                <v-card-text class="space-y-3">
-                    <v-select
+        <UiModal v-model="showNewCuenta" title="Generar cuenta de cobro" max-width="max-w-lg">
+            <div class="space-y-3">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Pagador</label>
+                    <select
                         v-model="newCuenta.payer_id"
-                        :items="payers"
-                        item-title="razon_social"
-                        item-value="id"
-                        label="Pagador"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <div class="grid grid-cols-2 gap-3">
-                        <v-text-field
-                            v-model.number="newCuenta.period_year"
-                            label="Año"
-                            type="number"
-                            variant="outlined"
-                            density="comfortable"
-                        />
-                        <v-text-field
+                        class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
+                    >
+                        <option :value="null" disabled>Seleccione…</option>
+                        <option v-for="p in payers" :key="p.id" :value="p.id">{{ p.razon_social }}</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Año</label>
+                        <input v-model.number="newCuenta.period_year" type="number" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Mes</label>
+                        <input
                             v-model.number="newCuenta.period_month"
-                            label="Mes"
                             type="number"
                             min="1"
                             max="12"
-                            variant="outlined"
-                            density="comfortable"
+                            class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm"
                         />
                     </div>
-                    <v-select
-                        v-model="newCuenta.mode"
-                        :items="['PLENO', 'SOLO_APORTES', 'SOLO_AFILIACIONES']"
-                        label="Modo de generación"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="outlined" @click="showNewCuenta = false">Cancelar</v-btn>
-                    <v-btn color="teal-darken-3" :loading="savingCuenta" @click="createCuenta">Generar pre-cuenta</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Modo de generación</label>
+                    <select v-model="newCuenta.mode" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+                        <option value="PLENO">PLENO</option>
+                        <option value="SOLO_APORTES">SOLO_APORTES</option>
+                        <option value="SOLO_AFILIACIONES">SOLO_AFILIACIONES</option>
+                    </select>
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="rounded-xl border border-stone-300 px-4 py-2 text-sm" @click="showNewCuenta = false">Cancelar</button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="savingCuenta"
+                        @click="createCuenta"
+                    >
+                        <span v-if="savingCuenta" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Generar pre-cuenta
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Definitiva -->
-        <v-dialog v-model="showDefinitiva" max-width="520">
-            <v-card class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800">Convertir a definitiva</v-card-title>
-                <v-card-text>
-                    <v-text-field
-                        v-model="definitivaForm.payment_date_1"
-                        label="Fecha pago oportuno"
-                        type="date"
-                        variant="outlined"
-                        density="comfortable"
-                        class="mb-2"
-                    />
-                    <v-text-field
-                        v-model="definitivaForm.payment_date_2"
-                        label="Fecha pago con mora"
-                        type="date"
-                        variant="outlined"
-                        density="comfortable"
-                        class="mb-2"
-                    />
-                    <v-text-field
-                        v-model.number="definitivaForm.mora_days"
-                        label="Días de mora (para intereses)"
-                        type="number"
-                        min="0"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="outlined" @click="showDefinitiva = false">Cancelar</v-btn>
-                    <v-btn color="teal-darken-3" :loading="savingDefinitiva" @click="submitDefinitiva">Confirmar</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+        <UiModal v-model="showDefinitiva" title="Convertir a definitiva" max-width="max-w-lg">
+            <div class="space-y-3">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Fecha pago oportuno</label>
+                    <input v-model="definitivaForm.payment_date_1" type="date" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Fecha pago con mora</label>
+                    <input v-model="definitivaForm.payment_date_2" type="date" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Días de mora (para intereses)</label>
+                    <input v-model.number="definitivaForm.mora_days" type="number" min="0" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="rounded-xl border border-stone-300 px-4 py-2 text-sm" @click="showDefinitiva = false">Cancelar</button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="savingDefinitiva"
+                        @click="submitDefinitiva"
+                    >
+                        <span v-if="savingDefinitiva" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Confirmar
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Pagar -->
-        <v-dialog v-model="showPay" max-width="520">
-            <v-card class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800">Pagar cuenta de cobro</v-card-title>
-                <v-card-text v-if="payingCuenta">
-                    <v-alert type="info" variant="tonal" color="teal-darken-3" class="mb-4">
-                        <strong>{{ payingCuenta.isOportuno ? 'Pago oportuno' : 'Pago con mora' }}:</strong>
-                        {{ formatCurrency(payingCuenta.isOportuno ? payingCuenta.total_1 : payingCuenta.total_2) }}
-                    </v-alert>
-                    <v-select
-                        v-model="payForm.payment_method"
-                        :items="['EFECTIVO', 'CONSIGNACION']"
-                        label="Medio de pago"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <v-text-field
-                        v-model.number="payForm.amount_pesos"
-                        label="Monto"
-                        type="number"
-                        prefix="$"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <v-text-field
-                        v-if="payForm.payment_method === 'CONSIGNACION'"
-                        v-model="payForm.bank_name"
-                        label="Banco"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <v-text-field
-                        v-if="payForm.payment_method === 'CONSIGNACION'"
-                        v-model="payForm.bank_reference"
-                        label="Referencia"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="outlined" @click="showPay = false">Cancelar</v-btn>
-                    <v-btn color="teal-darken-3" :loading="paying" @click="submitPay">Registrar pago</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+        <UiModal v-model="showPay" title="Pagar cuenta de cobro" max-width="max-w-lg">
+            <div v-if="payingCuenta" class="space-y-3">
+                <div class="rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-2 text-sm text-teal-950">
+                    <strong>{{ payingCuenta.isOportuno ? 'Pago oportuno' : 'Pago con mora' }}:</strong>
+                    {{ formatCurrency(payingCuenta.isOportuno ? payingCuenta.total_1 : payingCuenta.total_2) }}
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Medio de pago</label>
+                    <select v-model="payForm.payment_method" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+                        <option value="EFECTIVO">EFECTIVO</option>
+                        <option value="CONSIGNACION">CONSIGNACION</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Monto</label>
+                    <input v-model.number="payForm.amount_pesos" type="number" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div v-if="payForm.payment_method === 'CONSIGNACION'">
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Banco</label>
+                    <input v-model="payForm.bank_name" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div v-if="payForm.payment_method === 'CONSIGNACION'">
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Referencia</label>
+                    <input v-model="payForm.bank_reference" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="rounded-xl border border-stone-300 px-4 py-2 text-sm" @click="showPay = false">Cancelar</button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="paying"
+                        @click="submitPay"
+                    >
+                        <span v-if="paying" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Registrar pago
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Anular cuenta -->
-        <v-dialog v-model="showCancelCuenta" max-width="520">
-            <v-card class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800">Anular cuenta de cobro</v-card-title>
-                <v-card-text>
-                    <v-text-field
-                        v-model="cancelForm.cancellation_reason"
-                        label="Causal"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <v-textarea v-model="cancelForm.cancellation_motive" label="Motivo" rows="3" variant="outlined" />
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="outlined" @click="showCancelCuenta = false">Cancelar</v-btn>
-                    <v-btn color="error" :loading="cancelling" @click="submitCancelCuenta">Anular</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+        <UiModal v-model="showCancelCuenta" title="Anular cuenta de cobro" max-width="max-w-lg">
+            <div class="space-y-3">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Causal</label>
+                    <input v-model="cancelForm.cancellation_reason" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Motivo</label>
+                    <textarea v-model="cancelForm.cancellation_motive" rows="3" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="rounded-xl border border-stone-300 px-4 py-2 text-sm" @click="showCancelCuenta = false">Cancelar</button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="cancelling"
+                        @click="submitCancelCuenta"
+                    >
+                        <span v-if="cancelling" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Anular
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Nuevo recibo -->
-        <v-dialog v-model="showNewRecibo" max-width="640" scrollable>
-            <v-card class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800">Nuevo recibo de caja</v-card-title>
-                <v-card-text>
-                    <v-select
-                        v-model="newRecibo.tipo"
-                        :items="tiposRecibo"
-                        label="Tipo"
-                        variant="outlined"
-                        density="comfortable"
-                        class="mb-2"
-                    />
-                    <v-select
-                        v-model="newRecibo.payment_method"
-                        :items="['EFECTIVO', 'CONSIGNACION', 'CREDITO']"
-                        label="Medio de pago"
-                        variant="outlined"
-                        density="comfortable"
-                        class="mb-2"
-                    />
-                    <v-text-field
-                        v-if="newRecibo.payment_method === 'CONSIGNACION'"
-                        v-model="newRecibo.bank_name"
-                        label="Banco"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <v-text-field
-                        v-if="newRecibo.payment_method === 'CONSIGNACION'"
-                        v-model="newRecibo.bank_reference"
-                        label="Referencia"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <h4 class="text-stone-700 text-sm font-semibold mt-4 mb-2">Conceptos</h4>
-                    <div v-for="(line, idx) in newRecibo.items" :key="idx" class="flex flex-wrap gap-2 mb-2 items-center">
-                        <v-text-field
-                            v-model="line.concept"
-                            label="Concepto"
-                            variant="outlined"
-                            density="compact"
-                            class="flex-1 min-w-[12rem]"
-                        />
-                        <v-text-field
-                            v-model.number="line.amount_pesos"
-                            label="Monto"
-                            type="number"
-                            prefix="$"
-                            variant="outlined"
-                            density="compact"
-                            class="w-36"
-                        />
-                        <v-btn icon size="small" variant="text" color="error" @click="newRecibo.items.splice(idx, 1)">
-                            <span class="text-lg leading-none">×</span>
-                        </v-btn>
+        <UiModal v-model="showNewRecibo" title="Nuevo recibo de caja" max-width="max-w-2xl">
+            <div class="space-y-3">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Tipo</label>
+                        <select v-model="newRecibo.tipo" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+                            <option v-for="t in tiposRecibo" :key="t" :value="t">{{ t }}</option>
+                        </select>
                     </div>
-                    <v-btn size="small" variant="text" color="teal-darken-3" @click="newRecibo.items.push({ concept: '', amount_pesos: 0 })">
-                        + Agregar concepto
-                    </v-btn>
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="outlined" @click="showNewRecibo = false">Cancelar</v-btn>
-                    <v-btn color="teal-darken-3" :loading="savingRecibo" @click="createRecibo">Generar recibo</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Medio de pago</label>
+                        <select v-model="newRecibo.payment_method" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+                            <option value="EFECTIVO">EFECTIVO</option>
+                            <option value="CONSIGNACION">CONSIGNACION</option>
+                            <option value="CREDITO">CREDITO</option>
+                        </select>
+                    </div>
+                </div>
+                <div v-if="newRecibo.payment_method === 'CONSIGNACION'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Banco</label>
+                        <input v-model="newRecibo.bank_name" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-stone-600">Referencia</label>
+                        <input v-model="newRecibo.bank_reference" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                    </div>
+                </div>
+                <h4 class="mt-2 text-sm font-semibold text-stone-700">Conceptos</h4>
+                <div v-for="(line, idx) in newRecibo.items" :key="idx" class="mb-2 flex flex-wrap items-end gap-2">
+                    <div class="min-w-[12rem] flex-1">
+                        <label class="mb-1 block text-xs text-stone-600">Concepto</label>
+                        <input v-model="line.concept" type="text" class="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
+                    </div>
+                    <div class="w-36">
+                        <label class="mb-1 block text-xs text-stone-600">Monto</label>
+                        <input v-model.number="line.amount_pesos" type="number" class="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
+                    </div>
+                    <button
+                        type="button"
+                        class="rounded-lg px-2 py-1 text-lg leading-none text-red-600 hover:bg-red-50"
+                        aria-label="Quitar"
+                        @click="newRecibo.items.splice(idx, 1)"
+                    >
+                        ×
+                    </button>
+                </div>
+                <button
+                    type="button"
+                    class="text-sm font-medium text-teal-800 hover:underline"
+                    @click="newRecibo.items.push({ concept: '', amount_pesos: 0 })"
+                >
+                    + Agregar concepto
+                </button>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="rounded-xl border border-stone-300 px-4 py-2 text-sm" @click="showNewRecibo = false">Cancelar</button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="savingRecibo"
+                        @click="createRecibo"
+                    >
+                        <span v-if="savingRecibo" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Generar recibo
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Detalle recibo -->
-        <v-dialog v-model="showInvoiceDetail" max-width="720" scrollable>
-            <v-card v-if="selectedInvoice" class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800 font-serif-svc text-lg">
-                    Recibo {{ selectedInvoice.invoice?.public_number }}
-                </v-card-title>
-                <v-card-text>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm mb-4">
-                        <p><strong class="text-stone-600">Tipo:</strong> {{ selectedInvoice.invoice?.tipo }}</p>
-                        <p><strong class="text-stone-600">Medio:</strong> {{ selectedInvoice.invoice?.payment_method }}</p>
-                        <p><strong class="text-stone-600">Fecha:</strong> {{ selectedInvoice.invoice?.fecha }}</p>
-                    </div>
-                    <div class="rounded-lg border border-teal-200 bg-teal-50/40 p-3 mb-4 text-sm">
-                        <p class="mb-1">
-                            <strong class="text-teal-900">Total:</strong>
-                            {{ formatCurrency(selectedInvoice.invoice?.total_pesos) }}
-                        </p>
-                        <p class="text-stone-700">
-                            <strong class="text-stone-600">En letras:</strong> {{ selectedInvoice.total_in_words }}
-                        </p>
-                    </div>
-                    <v-data-table
-                        v-if="selectedInvoice.invoice?.items"
-                        :headers="itemHeaders"
-                        :items="selectedInvoice.invoice.items"
-                        density="compact"
-                        items-per-page="-1"
-                        hide-default-footer
+        <UiModal v-model="showInvoiceDetail" title="" max-width="max-w-3xl">
+            <template v-if="selectedInvoice" #title>Recibo {{ selectedInvoice.invoice?.public_number }}</template>
+            <template v-if="selectedInvoice">
+                <div class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                    <p><strong class="text-stone-600">Tipo:</strong> {{ selectedInvoice.invoice?.tipo }}</p>
+                    <p><strong class="text-stone-600">Medio:</strong> {{ selectedInvoice.invoice?.payment_method }}</p>
+                    <p><strong class="text-stone-600">Fecha:</strong> {{ selectedInvoice.invoice?.fecha }}</p>
+                </div>
+                <div class="mt-4 rounded-lg border border-teal-200 bg-teal-50/40 p-3 text-sm">
+                    <p class="mb-1">
+                        <strong class="text-teal-900">Total:</strong>
+                        {{ formatCurrency(selectedInvoice.invoice?.total_pesos) }}
+                    </p>
+                    <p class="text-stone-700">
+                        <strong class="text-stone-600">En letras:</strong> {{ selectedInvoice.total_in_words }}
+                    </p>
+                </div>
+                <div v-if="selectedInvoice.invoice?.items" class="mt-4 overflow-x-auto rounded-lg border border-stone-200">
+                    <table class="min-w-full divide-y divide-stone-200 text-sm">
+                        <thead class="bg-stone-50 text-left text-xs font-semibold text-stone-600">
+                            <tr>
+                                <th class="px-2 py-1.5">#</th>
+                                <th class="px-2 py-1.5">Concepto</th>
+                                <th class="px-2 py-1.5 text-end">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <tr v-for="it in selectedInvoice.invoice.items" :key="it.line_number ?? it.id">
+                                <td class="px-2 py-1.5">{{ it.line_number }}</td>
+                                <td class="px-2 py-1.5">{{ it.concept }}</td>
+                                <td class="px-2 py-1.5 text-end">{{ formatCurrency(it.amount_pesos) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+            <template v-if="selectedInvoice" #footer>
+                <div class="flex justify-end">
+                    <button
+                        type="button"
+                        class="rounded-xl border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50"
+                        @click="showInvoiceDetail = false"
                     >
-                        <template #item.amount_pesos="{ item }">
-                            {{ formatCurrency(item.amount_pesos) }}
-                        </template>
-                    </v-data-table>
-                </v-card-text>
-                <v-card-actions class="border-t border-stone-200/90">
-                    <v-spacer />
-                    <v-btn variant="outlined" color="stone" @click="showInvoiceDetail = false">Cerrar</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+                        Cerrar
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
         <!-- Anular recibo -->
-        <v-dialog v-model="showCancelInvoice" max-width="520">
-            <v-card class="rounded-xl border border-stone-200/90">
-                <v-card-title class="text-stone-800">Anular recibo</v-card-title>
-                <v-card-text>
-                    <v-text-field
-                        v-model="cancelInvoiceForm.cancellation_reason"
-                        label="Causal"
-                        variant="outlined"
-                        density="comfortable"
-                    />
-                    <v-textarea v-model="cancelInvoiceForm.cancellation_motive" label="Motivo" rows="3" variant="outlined" />
-                </v-card-text>
-                <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="outlined" @click="showCancelInvoice = false">Cancelar</v-btn>
-                    <v-btn color="error" :loading="cancellingInvoice" @click="submitCancelInvoice">Anular</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+        <UiModal v-model="showCancelInvoice" title="Anular recibo" max-width="max-w-lg">
+            <div class="space-y-3">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Causal</label>
+                    <input v-model="cancelInvoiceForm.cancellation_reason" type="text" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-stone-600">Motivo</label>
+                    <textarea v-model="cancelInvoiceForm.cancellation_motive" rows="3" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="rounded-xl border border-stone-300 px-4 py-2 text-sm" @click="showCancelInvoice = false">Cancelar</button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="cancellingInvoice"
+                        @click="submitCancelInvoice"
+                    >
+                        <span v-if="cancellingInvoice" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Anular
+                    </button>
+                </div>
+            </template>
+        </UiModal>
 
-        <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000" location="bottom">
-            {{ snackbar.text }}
-        </v-snackbar>
+        <UiToast :show="toast.show" :message="toast.text" :variant="toast.variant" />
     </div>
 </template>

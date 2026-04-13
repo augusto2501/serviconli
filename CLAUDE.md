@@ -13,7 +13,7 @@ Gestiona ~891 afiliados (664 activos) con flujo completo PILA: afiliación → l
 
 ```
 Backend:  Laravel 11, PHP 8.3+, MySQL 8
-Frontend: Vue 3 + Vuetify + Tailwind CSS (Inertia.js)
+Frontend: Vue 3 + Tailwind CSS (Blade + montaje Vue por página; Vite)
 Auth:     Laravel Sanctum
 Testing:  PHPUnit (Feature + Unit)
 PDF:      barryvdh/laravel-dompdf
