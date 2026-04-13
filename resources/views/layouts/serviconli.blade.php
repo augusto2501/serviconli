@@ -85,8 +85,8 @@
             <a href="{{ url('/') }}" class="svc-sidebar-logo-short hidden font-serif-svc text-lg font-bold text-teal-800 no-underline">S</a>
         </div>
 
-        {{-- Navegación --}}
-        <nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Sidebar">
+        {{-- Navegación (oculta hasta confirmar autenticación vía JS) --}}
+        <nav id="svc-sidebar-nav" class="flex-1 overflow-y-auto px-3 py-4 hidden" aria-label="Sidebar">
             @foreach ($svcNavItems as $group)
                 @if (isset($group['url']))
                     {{-- Enlace directo (Dashboard) --}}
@@ -125,7 +125,7 @@
         </nav>
 
         {{-- Footer del sidebar: sesión --}}
-        <div class="shrink-0 border-t border-stone-200/80 px-3 py-3">
+        <div id="svc-sidebar-footer" class="shrink-0 border-t border-stone-200/80 px-3 py-3 hidden">
             <a id="svc-nav-login" href="{{ route('login') }}" class="mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-teal-900">
                 <svg class="h-[1.125rem] w-[1.125rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
                 <span class="svc-label">Iniciar sesión</span>
@@ -144,11 +144,11 @@
 
         {{-- Topbar (solo en móvil y como barra de utilidades en escritorio) --}}
         <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-stone-200/80 bg-white/95 px-4 backdrop-blur-sm">
-            {{-- Hamburguesa (solo móvil) --}}
+            {{-- Hamburguesa (solo móvil, oculta hasta confirmar auth) --}}
             <button
                 id="svc-menu-toggle"
                 type="button"
-                class="inline-flex items-center justify-center rounded-lg p-2 text-stone-700 transition hover:bg-stone-100 lg:hidden"
+                class="hidden items-center justify-center rounded-lg p-2 text-stone-700 transition hover:bg-stone-100 lg:hidden"
                 aria-controls="svc-drawer"
                 aria-expanded="false"
                 aria-label="Abrir menú"
@@ -183,7 +183,7 @@
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <nav class="px-3 py-4" aria-label="Drawer">
+            <nav id="svc-drawer-nav" class="px-3 py-4" aria-label="Drawer">
                 @foreach ($svcNavItems as $group)
                     @if (isset($group['url']))
                         <a href="{{ $group['url'] }}" class="mb-1 flex items-center gap-3 rounded-xl bg-teal-800 px-3 py-2.5 text-sm font-semibold text-white">
@@ -226,50 +226,71 @@
 (function () {
     var t = sessionStorage.getItem('serviconli_api_token');
 
-    function setAuth(show) {
-        ['svc-nav-login','svc-nav-login-top','svc-nav-login-drawer'].forEach(function(id){
-            var el = document.getElementById(id);
-            if (el) el.classList.toggle('hidden', show);
+    /* ── Elementos de navegación ── */
+    var sidebarNav    = document.getElementById('svc-sidebar-nav');
+    var sidebarFooter = document.getElementById('svc-sidebar-footer');
+    var drawerNav     = document.getElementById('svc-drawer-nav');
+    var toggle        = document.getElementById('svc-menu-toggle');
+
+    /* ── Mostrar/ocultar toda la interfaz autenticada ── */
+    function setAuth(authed) {
+        /* Mostrar/ocultar la navegación completa del sidebar y drawer */
+        [sidebarNav, sidebarFooter].forEach(function(el) {
+            if (el) el.classList.toggle('hidden', !authed);
         });
-        ['svc-nav-logout','svc-nav-logout-top','svc-nav-logout-drawer'].forEach(function(id){
+        /* El botón hamburguesa solo aparece si hay sesión */
+        if (toggle) {
+            toggle.classList.toggle('hidden', !authed);
+            toggle.classList.toggle('inline-flex', authed);
+        }
+
+        /* Botones login / logout (sidebar + topbar + drawer) */
+        ['svc-nav-login', 'svc-nav-login-top', 'svc-nav-login-drawer'].forEach(function(id) {
             var el = document.getElementById(id);
-            if (el) el.classList.toggle('hidden', !show);
+            if (el) el.classList.toggle('hidden', authed);
+        });
+        ['svc-nav-logout', 'svc-nav-logout-top', 'svc-nav-logout-drawer'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', !authed);
         });
     }
 
     function doLogout() {
-        sessionStorage.removeItem('serviconli_api_token');
         fetch('/api/logout', { method: 'POST', headers: { Accept: 'application/json', Authorization: 'Bearer ' + t } }).catch(function(){});
+        sessionStorage.removeItem('serviconli_api_token');
         window.location.href = '/login';
     }
 
-    if (t) setAuth(true);
+    /* Estado inicial según token */
+    setAuth(!!t);
 
-    ['svc-nav-logout','svc-nav-logout-top','svc-nav-logout-drawer'].forEach(function(id){
+    /* Listeners de logout */
+    ['svc-nav-logout', 'svc-nav-logout-top', 'svc-nav-logout-drawer'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('click', doLogout);
     });
 
-    /* Drawer móvil */
-    var overlay = document.getElementById('svc-overlay');
-    var drawer  = document.getElementById('svc-drawer');
-    var toggle  = document.getElementById('svc-menu-toggle');
+    /* ── Drawer móvil ── */
+    var overlay  = document.getElementById('svc-overlay');
+    var drawer   = document.getElementById('svc-drawer');
     var iconMenu  = document.getElementById('svc-icon-menu');
     var iconClose = document.getElementById('svc-icon-close');
     var closeBtn  = document.getElementById('svc-drawer-close');
 
     function openDrawer() {
+        if (!drawer || !overlay) return;
         drawer.classList.remove('-translate-x-full');
         overlay.classList.remove('hidden');
-        toggle.setAttribute('aria-expanded', 'true');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
         if (iconMenu)  iconMenu.classList.add('hidden');
         if (iconClose) iconClose.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
     function closeDrawer() {
+        if (!drawer || !overlay) return;
         drawer.classList.add('-translate-x-full');
         overlay.classList.add('hidden');
-        toggle.setAttribute('aria-expanded', 'false');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
         if (iconMenu)  iconMenu.classList.remove('hidden');
         if (iconClose) iconClose.classList.add('hidden');
         document.body.style.overflow = '';
