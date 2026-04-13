@@ -8,6 +8,8 @@ import LiquidacionLotesPage from './serviconli/vue/pages/LiquidacionLotesPage.vu
 import GenerarPILAPage from './serviconli/vue/pages/GenerarPILAPage.vue';
 import CarteraPage from './serviconli/vue/pages/CarteraPage.vue';
 import CuadreCajaPage from './serviconli/vue/pages/CuadreCajaPage.vue';
+import AsesoresPage from './serviconli/vue/pages/AsesoresPage.vue';
+import TercerosPage from './serviconli/vue/pages/TercerosPage.vue';
 
 const PAGE_COMPONENT = {
     login: LoginPage,
@@ -18,6 +20,8 @@ const PAGE_COMPONENT = {
     'generar-pila': GenerarPILAPage,
     cartera: CarteraPage,
     'cuadre-caja': CuadreCajaPage,
+    asesores: AsesoresPage,
+    terceros: TercerosPage,
 };
 
 document.addEventListener('DOMContentLoaded', () => {

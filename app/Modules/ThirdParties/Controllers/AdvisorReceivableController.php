@@ -27,14 +27,20 @@ final class AdvisorReceivableController extends Controller
         $paginator = $q->orderByDesc('id')->paginate($perPage);
 
         return response()->json([
-            'data' => collect($paginator->items())->map(fn (AdvisorReceivable $r): array => [
-                'id' => $r->id,
-                'advisorId' => $r->advisor_id,
-                'billInvoiceId' => $r->bill_invoice_id,
-                'amountPesos' => (int) $r->amount_pesos,
-                'status' => $r->status,
-                'notes' => $r->notes,
-            ])->values()->all(),
+            'data' => collect($paginator->items())->map(function (AdvisorReceivable $r): array {
+                $adv = $r->advisor;
+
+                return [
+                    'id' => $r->id,
+                    'advisorId' => $r->advisor_id,
+                    'advisorCode' => $adv?->code,
+                    'advisorName' => $adv ? trim($adv->first_name.' '.($adv->last_name ?? '')) : null,
+                    'billInvoiceId' => $r->bill_invoice_id,
+                    'amountPesos' => (int) $r->amount_pesos,
+                    'status' => $r->status,
+                    'notes' => $r->notes,
+                ];
+            })->values()->all(),
             'meta' => [
                 'currentPage' => $paginator->currentPage(),
                 'lastPage' => $paginator->lastPage(),

@@ -23,6 +23,8 @@
                 <a href="{{ url('/generar-pila') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Archivo PILA</a>
                 <a href="{{ url('/cartera') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Cartera</a>
                 <a href="{{ url('/cuadre-caja') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Caja</a>
+                <a href="{{ url('/asesores') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Asesores</a>
+                <a href="{{ url('/terceros') }}" class="rounded-lg px-2 py-1 text-teal-800 hover:bg-teal-50 hover:underline">Terceros</a>
                 <span class="hidden h-4 w-px bg-stone-300 sm:inline" aria-hidden="true"></span>
                 <a id="svc-nav-login" href="{{ route('login') }}" class="rounded-lg px-2 py-1 text-stone-600 hover:text-teal-800">Iniciar sesión</a>
                 <button id="svc-nav-logout" type="button" class="hidden rounded-lg px-2 py-1 text-stone-600 hover:text-teal-800">Cerrar sesión</button>

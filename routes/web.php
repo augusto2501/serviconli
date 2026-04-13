@@ -31,4 +31,8 @@ Route::view('/cartera', 'billing.cartera')->name('billing.cartera');
 // Flujo 10 — Cuadre de caja
 Route::view('/cuadre-caja', 'cash.reconciliation')->name('cash.reconciliation');
 
+// Sprint I — Asesores y terceros (UI)
+Route::view('/asesores', 'advisors.index')->name('advisors.ui');
+Route::view('/terceros', 'third_parties.index')->name('third_parties.ui');
+
 Route::get('/ai/probe', AiProbeController::class);
