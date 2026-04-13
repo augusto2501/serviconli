@@ -24,6 +24,9 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Datos confidenciales del cliente (NUNCA subir al remoto)
+/docs/
+
 # Documentación interna / contexto de negocio (no subir al remoto)
 /SKILL.md
 /REQUISITOS_FUNCIONALES_SERVICONLI.md
