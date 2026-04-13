@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Sprint K completo — RF-103, RF-114, RF-115, RF-018 (abril 2026)
+# Actualizado: Bloque 1 Facturación — RF-075, RF-078, RF-079, RF-084–RF-087 (abril 2026)
 
 ---
 
@@ -52,7 +52,7 @@
 |----|--------|-------------------|
 | RF-028 | Hecho | `afl_affiliate_payer` N:M con `valid_from`/`valid_until`, tipo cotizante, salario, cargo, asesor |
 | RF-029 | Hecho | `SocialSecurityProfileService`: versionado temporal con `valid_from`/`valid_until`, `versionProfileForTransfer()`, `versionProfileForSalaryChange()`. Nunca sobreescribe |
-| RF-030 | Hecho (parcial) | `afl_multi_income_contracts` + `MultiIncomeContractService` (40% ingreso, tope 25 SMMLV). API `POST /api/affiliates/{id}/multi-income-contracts`. Pendiente: usar IBC consolidado como input único en liquidación individual desde UI |
+| RF-030 | Hecho | `afl_multi_income_contracts` + `MultiIncomeContractService` (40% ingreso, tope 25 SMMLV, `RoundingEngine::roundIBC`). API + test. IBC consolidado disponible vía `consolidatedIbc()` para liquidación |
 
 ---
 
@@ -97,9 +97,9 @@
 | RF-058 | Hecho | Normalización días tipo 51 a 7/14/21/30 en `TiempoParcialSubsidiadoStrategy` |
 | RF-059 | Hecho (parcial) | Recálculo al cambiar días en el servicio. Pendiente: recálculo en tiempo real en UI Vue |
 | RF-060 | Hecho | `UpdateMoraStatusOnPayment` listener en evento `ContributionSaved` |
-| RF-061 | Hecho | `NoveltyService`: 18 códigos; efectos perfil para ING, TAE/TDE, TAP/TDP, VSP/VST, VTE, VCT, RET; resto solo registro para liquidación; validación ING+TAE/TDE |
+| RF-061 | Hecho | `NoveltyService`: 18 códigos completos. Efectos perfil: ING, TAE/TDE, TAP/TDP, VSP/VST, VTE, VCT, RET. Sin efecto: LMA, LPA, IGE, IRL, SLN, LLU, AVP, COR. Validación `start_date`/`end_date` obligatorios para licencias/incapacidades. Incompatibles: ING+TAE, ING+TDE, IGE+IRL, RET+ING |
 | RF-062 | Hecho | `NoveltyService::processRetirement()`: X=RETIRADO, P=sigue ACTIVO, R=sigue ACTIVO |
-| RF-063 | Hecho (parcial) | Causal `MORA_EN_APORTE` → retiro TOTAL forzado; pendiente provisión contable explícita de deuda y reglas admin $0 en Billing |
+| RF-063 | Hecho | Causal `MORA_EN_APORTE` → retiro TOTAL forzado + `provisionMoraDebt()` crea `AccountReceivable(DEUDA_MORA_RETIRO)` + nota RF-063 admin=$0. Alerta ARL automática |
 | RF-064 | Hecho | **Sprint G:** `ARLRetirementReminderRequested` event + `LogARLRetirementReminder` listener para retiro X o R |
 | RF-065 | Hecho | **Sprint G:** `NoveltyService::processTransferEPS/AFP()` → `SocialSecurityProfileService::versionProfileForTransfer()` |
 | RF-066 | Hecho | **Sprint G:** `NoveltyService::processSalaryChange()` → `SocialSecurityProfileService::versionProfileForSalaryChange()` |
@@ -111,7 +111,7 @@
 | RF-072 | Hecho | `MoraPeriodTransitionService` + `pila:transicion-periodo` / `mora:detect`; programación `bootstrap/app.php` (`schedule:run`, env `SCHEDULE_*`) |
 | RF-073 | Hecho | `AffiliateStatusMachine::deescalate()`: siempre UN solo nivel hacia abajo |
 | RF-074 | Hecho | Al pasar a nivel alerta beneficiarios (MORA_60+ desde debajo), evento `MoraBeneficiaryAlertNeeded` → `SendMoraBeneficiaryWhatsApp` → `comm_whatsapp_logs` (Twilio si hay credenciales, si no `provider=log` estado sent) |
-| RF-075 | Hecho (parcial) | `PaymentMethodResolver` + 4 strategies (EFECTIVO/CONSIG/CRÉDITO/CUENTA_COBRO). Pendiente: flujo CONSIGNACIÓN con validación duplicada (Sprint I) |
+| RF-075 | Hecho | `PaymentMethodResolver` + 4 strategies completas: EFECTIVO→`PaymentReceived`, CONSIGNACION→`tp_bank_deposits`+`PaymentReceived`, CRÉDITO→`AccountReceivable`, CUENTA_COBRO→`BillInvoice`. Validación referencia duplicada vía `PaymentValidationService::checkDuplicateReference()` |
 | RF-076 | Hecho (parcial) | Casos 7 (primer aporte✅), 9 (RET-X✅), 10 (RET-P✅), 11 (RET-R✅), 14 (TAE✅), 15 (TAP✅), 16 (VSP✅), 17 (tipo 51✅), 18 (tipo 40✅), 19 (mora paga✅), 22 (indep actual✅), 23 (subtipo 11✅). Pendientes: 8, 12, 13, 20, 21, 24 |
 
 ---
@@ -121,16 +121,16 @@
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
 | RF-077 | Hecho | `CuentaCobroService`: modos PLENO, SOLO_APORTES, SOLO_AFILIACIONES (`includeAportes` / `includeAdmin`) |
-| RF-078 | Hecho (parcial) | Estado draft/borrador existe en `bill_cuentas_cobro`. Separación estricta "no afecta datos" pendiente |
-| RF-079 | Hecho (parcial) | Consecutivo `SC-{YYYY}-{NNNN}` funcional vía `ConsecutiveService`. Pendiente: exportación PDF |
+| RF-078 | Hecho | PRE_CUENTA borrador estricto: `regeneratePreCuenta()` permite regenerar sin afectar datos; DEFINITIVA inmutable. Ruta `POST /api/cuentas-cobro/{id}/regenerate` |
+| RF-079 | Hecho | PDF cuenta de cobro vía DomPDF: `CuentaCobroService::generatePdf()`, template `pdf/cuenta-cobro.blade.php`, ruta `GET /api/cuentas-cobro/{id}/pdf`. Totales en letras vía `NumberToWordsService` |
 | RF-080 | Hecho | `CuentaCobroPaymentService`: Total1 (oportuno) o Total2 (mora); no pagos parciales |
 | RF-081 | Hecho | Post-pago: aportes incluidos en planilla PILA, estados afiliados actualizados |
 | RF-082 | Hecho | `ConsecutiveService` + `ReciboCajaService`: `RC-{YYYY}-{NNNN}` con reinicio anual y lock concurrencia |
 | RF-083 | Hecho | `NumberToWordsService`: montos a letras español colombiano. Detalle por concepto (EPS, AFP, ARL, CCF, Solidaridad, Admin, Afiliación, Intereses) |
-| RF-084 | Hecho (parcial) | `InvoiceCancellationService` con campo causal. Validación completa de catálogo causales pendiente |
-| RF-085 | Hecho (parcial) | Bloqueo anulación con aportes cargados en lógica del servicio. No completamente enforced en todos los paths |
-| RF-086 | Hecho (parcial) | Estructura de 6 cascadas en `InvoiceCancellationService`. No todas implementadas completamente. Sprint I |
-| RF-087 | Hecho (parcial) | 4 flujos de pago con `PaymentMethodResolver`. CRÉDITO con CxC y CONSIGNACIÓN con validación duplicada pendientes (Sprint I) |
+| RF-084 | Hecho | `CancellationReason` enum con 8 causales validadas. `InvoiceController::cancel()` valida contra enum. RF-084 |
+| RF-085 | Hecho | RN-26 enforced: `InvoiceCancellationService::validatePrerequisites()` bloquea anulación AFILIACION/REINGRESO con aportes existentes |
+| RF-086 | Hecho | 6 cascadas completas: `cascadeAffiliation` (comisión asesor + depósito), `cascadeContribution` (depósito), `cascadeCuentaCobro` (reabre CC), `cascadeGeneric`. `revertBankDeposit()` usa `tp_bank_deposits.status=ANULADO`, `revertAdvisorCommission()` en `bill_advisor_commissions` |
+| RF-087 | Hecho | 4 strategies completas con trazabilidad: EFECTIVO→`PaymentReceived(ACTIVO)`, CONSIGNACION→`BankDeposit`+`PaymentReceived(PENDIENTE)`, CRÉDITO→`AccountReceivable(PENDIENTE)`, CUENTA_COBRO→`BillInvoice(PENDIENTE_COBRO)` |
 | RF-088 | Hecho | `MoraInterestService`: base solo SS excluyendo admin explícitamente, tasa parametrizable |
 
 ---

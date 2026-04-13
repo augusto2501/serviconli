@@ -75,13 +75,13 @@ Referencias: RF-030, D.1273/2018, LISTADO §3.3
 Test: `tests/Feature/Affiliations/MultiIncomeContractTest.php`
 
 **Definition of Done Sprint H:**
-- [ ] Sprint G commiteado con tests verdes
-- [ ] RF-061 todos los tipos con tests
-- [ ] RF-063 con test de escenario mora
-- [ ] RF-054 PDF generado y almacenado
-- [ ] RF-030 tabla + servicio + tests
-- [ ] `php artisan test` sin regresiones
-- [ ] CUMPLIMIENTO_RF_MATRIX.md actualizado
+- [x] Sprint G commiteado con tests verdes
+- [x] RF-061 todos los tipos con tests
+- [x] RF-063 con test de escenario mora
+- [x] RF-054 PDF generado y almacenado
+- [x] RF-030 tabla + servicio + tests
+- [x] `php artisan test` sin regresiones
+- [x] CUMPLIMIENTO_RF_MATRIX.md actualizado
 
 ---
 

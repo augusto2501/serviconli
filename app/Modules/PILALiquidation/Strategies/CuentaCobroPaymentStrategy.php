@@ -3,8 +3,8 @@
 namespace App\Modules\PILALiquidation\Strategies;
 
 use App\Modules\Billing\Models\BillInvoice;
+use App\Modules\Billing\Services\ConsecutiveService;
 use App\Modules\PILALiquidation\Models\PilaLiquidation;
-use Illuminate\Support\Str;
 
 /**
  * RN-12 — Cuenta cobro: factura pendiente al pagador/empleador.
@@ -25,12 +25,14 @@ final class CuentaCobroPaymentStrategy implements PaymentMethodStrategy
 
     public function process(PilaLiquidation $liquidation, array $context = []): array
     {
+        $consecutive = app(ConsecutiveService::class);
         $payerId = $context['payer_id'] ?? null;
 
         $invoice = BillInvoice::query()->create([
-            'public_number' => 'CC-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
+            'public_number' => $consecutive->next('RC'),
             'affiliate_id' => $liquidation->affiliate_id,
             'payer_id' => $payerId,
+            'fecha' => now(),
             'tipo' => 'APORTE_INDIVIDUAL',
             'payment_method' => 'CUENTA_COBRO',
             'total_pesos' => $liquidation->total_social_security_pesos,

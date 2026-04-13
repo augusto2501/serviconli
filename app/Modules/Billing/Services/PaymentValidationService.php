@@ -46,6 +46,24 @@ final class PaymentValidationService
         }
     }
 
+    /** RF-075: verificación no-bloqueante de referencia duplicada (warning) */
+    public function checkDuplicateReference(string $bankReference): ?string
+    {
+        $existing = PaymentReceived::query()
+            ->where('payment_method', 'CONSIGNACION')
+            ->where('bank_reference', $bankReference)
+            ->where('status', '!=', 'ANULADO')
+            ->first();
+
+        if ($existing !== null) {
+            $date = $existing->payment_date?->format('Y-m-d') ?? 'N/A';
+
+            return "Referencia '{$bankReference}' ya registrada el {$date} por \${$existing->amount_pesos}.";
+        }
+
+        return null;
+    }
+
     /**
      * Detecta posible excedente (misma referencia, diferente monto).
      */

@@ -9,8 +9,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/cuentas-cobro', [CuentaCobroController::class, 'index']);
 Route::post('/cuentas-cobro', [CuentaCobroController::class, 'store']);
 Route::get('/cuentas-cobro/{id}', [CuentaCobroController::class, 'show']);
+Route::post('/cuentas-cobro/{id}/regenerate', [CuentaCobroController::class, 'regenerate']);
 Route::post('/cuentas-cobro/{id}/definitiva', [CuentaCobroController::class, 'makeDefinitiva']);
 Route::post('/cuentas-cobro/{id}/pay', [CuentaCobroController::class, 'pay']);
+Route::get('/cuentas-cobro/{id}/pdf', [CuentaCobroController::class, 'pdf']);
 Route::post('/cuentas-cobro/{id}/cancel', [CuentaCobroController::class, 'cancel']);
 
 // Cotizaciones — Sprint G / RN-19

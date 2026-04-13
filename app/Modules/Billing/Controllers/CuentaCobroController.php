@@ -103,6 +103,24 @@ class CuentaCobroController extends Controller
         return response()->json($invoice, 201);
     }
 
+    /** RF-078: regenerar pre-cuenta (borrador) */
+    public function regenerate(int $id): JsonResponse
+    {
+        $cuenta = CuentaCobro::query()->findOrFail($id);
+
+        $new = $this->cuentaCobroService->regeneratePreCuenta($cuenta);
+
+        return response()->json($new->load('details'), 200);
+    }
+
+    /** RF-079: descarga PDF cuenta de cobro */
+    public function pdf(int $id): \Illuminate\Http\Response
+    {
+        $cuenta = CuentaCobro::query()->findOrFail($id);
+
+        return $this->cuentaCobroService->generatePdf($cuenta);
+    }
+
     public function cancel(Request $request, int $id): JsonResponse
     {
         $cuenta = CuentaCobro::query()->findOrFail($id);

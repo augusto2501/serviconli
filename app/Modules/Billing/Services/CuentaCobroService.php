@@ -10,6 +10,7 @@ use App\Modules\Billing\Models\CuentaCobroDetail;
 use App\Modules\Billing\Models\ServiceContract;
 use App\Modules\PILALiquidation\Models\LiquidationBatch;
 use App\Modules\RegulatoryEngine\Services\MoraInterestService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -275,6 +276,44 @@ final class CuentaCobroService
     private function includeAdmin(string $mode): bool
     {
         return in_array($mode, ['PLENO', 'SOLO_AFILIACIONES'], true);
+    }
+
+    /**
+     * RF-078: regenerar pre-cuenta — borra la existente y crea una nueva.
+     * Solo permitido en estado PRE_CUENTA (borrador no afecta datos).
+     */
+    public function regeneratePreCuenta(CuentaCobro $cuenta): CuentaCobro
+    {
+        if (! $cuenta->isPreCuenta()) {
+            throw new InvalidArgumentException('Solo se puede regenerar una PRE_CUENTA (borrador).');
+        }
+
+        $payerId = $cuenta->payer_id;
+        $periodYear = $cuenta->period_year;
+        $periodMonth = $cuenta->period_month;
+        $mode = $cuenta->generation_mode;
+        $batchId = $cuenta->batch_id;
+
+        CuentaCobroDetail::query()->where('cuenta_cobro_id', $cuenta->id)->delete();
+        $cuenta->delete();
+
+        return $this->generatePreCuenta($payerId, $periodYear, $periodMonth, $mode, $batchId);
+    }
+
+    /** RF-079: genera PDF cuenta de cobro definitiva */
+    public function generatePdf(CuentaCobro $cuenta): \Illuminate\Http\Response
+    {
+        $cuenta->load('details.affiliate.person', 'payer');
+        $numberToWords = app(NumberToWordsService::class);
+
+        $pdf = Pdf::loadView('pdf.cuenta-cobro', [
+            'cuenta' => $cuenta,
+            'payer' => $cuenta->payer,
+            'details' => $cuenta->details,
+            'totalWords' => $numberToWords->convert($cuenta->total_2 ?? $cuenta->total_1),
+        ]);
+
+        return $pdf->download("cuenta-cobro-{$cuenta->cuenta_number}.pdf");
     }
 
     private function validateMode(string $mode): void

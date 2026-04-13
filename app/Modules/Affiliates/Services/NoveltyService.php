@@ -47,6 +47,8 @@ final class NoveltyService
     private const INCOMPATIBLE_PAIRS = [
         ['ING', 'TAE'],
         ['ING', 'TDE'],
+        ['IGE', 'IRL'],
+        ['RET', 'ING'],
     ];
 
     /**
@@ -183,13 +185,47 @@ final class NoveltyService
 
         match ($scope) {
             'TOTAL' => $this->statusMachine->retire($affiliate),
-            'PENSION_ONLY', 'ARL_ONLY' => null, // Sigue ACTIVO
+            'PENSION_ONLY', 'ARL_ONLY' => null,
             default => null,
         };
+
+        // RF-063: provisionar deuda pendiente + admin=$0 para mora
+        if ($this->isMoraRetirement($novelty)) {
+            $this->provisionMoraDebt($affiliate, $novelty);
+        }
 
         if ($this->requiresARLRetirementAlert($novelty)) {
             Event::dispatch(new ARLRetirementReminderRequested($novelty));
         }
+    }
+
+    /**
+     * RF-063: Retiro por mora — provisiona deuda pendiente, fee admin=$0.
+     * Días cotizados = 1, admin = $0. Se registra saldo pendiente en CxC.
+     *
+     * @see DOCUMENTO_RECTOR §5.2, SKILL.md RN-06 CASO 12
+     */
+    private function provisionMoraDebt(Affiliate $affiliate, Novelty $novelty): void
+    {
+        $pendingLiquidations = \App\Modules\PILALiquidation\Models\PilaLiquidation::query()
+            ->where('affiliate_id', $affiliate->id)
+            ->where('status', 'confirmed')
+            ->get();
+
+        $totalDebt = $pendingLiquidations->sum('total_social_security_pesos');
+
+        if ($totalDebt > 0) {
+            \App\Modules\Billing\Models\AccountReceivable::query()->create([
+                'affiliate_id' => $affiliate->id,
+                'concept' => 'DEUDA_MORA_RETIRO',
+                'amount_pesos' => $totalDebt,
+                'balance_pesos' => $totalDebt,
+                'due_date' => now()->addDays(30),
+                'status' => 'PENDIENTE',
+            ]);
+        }
+
+        $novelty->update(['notes' => trim(($novelty->notes ?? '')." [RF-063: deuda provisionada={$totalDebt}, admin=0]")]);
     }
 
     /**

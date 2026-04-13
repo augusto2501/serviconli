@@ -221,6 +221,72 @@ class NoveltiesRemainingTest extends TestCase
         ]);
     }
 
+    public function test_ige_plus_irl_is_invalid_combination(): void
+    {
+        $affiliate = $this->makeAffiliate('ACTIVO');
+        $this->seedProfile($affiliate);
+        $period = new Periodo(2026, 4);
+
+        $this->service->register($affiliate, $period, 'IGE', [
+            'start_date' => '2026-04-01', 'end_date' => '2026-04-10',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->service->register($affiliate, $period, 'IRL', [
+            'start_date' => '2026-04-01', 'end_date' => '2026-04-10',
+        ]);
+    }
+
+    public function test_ret_plus_ing_is_invalid_combination(): void
+    {
+        $affiliate = $this->makeAffiliate('ACTIVO');
+        $this->seedProfile($affiliate);
+        $period = new Periodo(2026, 4);
+
+        $this->service->register($affiliate, $period, 'RET', [
+            'retirement_scope' => 'TOTAL', 'retirement_cause' => 'VOLUNTARIO',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->service->register($affiliate, $period, 'ING');
+    }
+
+    /** RF-063: Retiro por mora — provisiona deuda y pasa a RETIRADO. */
+    public function test_mora_retirement_provisions_debt_and_retires(): void
+    {
+        $affiliate = $this->makeAffiliate('ACTIVO');
+        $this->seedProfile($affiliate);
+        $period = new Periodo(2026, 4);
+
+        // Simular liquidación pendiente sin pagar
+        \App\Modules\PILALiquidation\Models\PilaLiquidation::query()->create([
+            'affiliate_id' => $affiliate->id,
+            'public_id' => 'PL-MORA-001',
+            'contributor_type_code' => '03',
+            'arl_risk_class' => 1,
+            'payment_date' => now(),
+            'document_last_two_digits' => 1,
+            'total_social_security_pesos' => 250000,
+            'subsystem_totals_pesos' => json_encode(['health' => 250000]),
+            'status' => 'confirmed',
+        ]);
+
+        $novelty = $this->service->register($affiliate, $period, 'RET', [
+            'retirement_scope' => 'TOTAL',
+            'retirement_cause' => 'MORA_EN_APORTE',
+        ]);
+
+        $affiliate->refresh();
+        $this->assertSame('RETIRADO', $affiliate->status->code);
+        $this->assertStringContainsString('RF-063', $novelty->fresh()->notes);
+
+        $this->assertDatabaseHas('bill_accounts_receivable', [
+            'affiliate_id' => $affiliate->id,
+            'concept' => 'DEUDA_MORA_RETIRO',
+            'amount_pesos' => 250000,
+        ]);
+    }
+
     public function test_ige_can_combine_with_any_novelty(): void
     {
         // RF-061: IGE puede coexistir con cualquier otra novedad
@@ -238,6 +304,34 @@ class NoveltiesRemainingTest extends TestCase
         ]);
 
         $this->assertCount(2, $this->service->forPeriod($affiliate, $period));
+    }
+
+    // ─── Controller validation ─────────────────────────────────────────────
+
+    public function test_lma_requires_start_and_end_date(): void
+    {
+        $affiliate = $this->makeAffiliate('ACTIVO');
+
+        $r = $this->postJson("/api/affiliates/{$affiliate->id}/novelties", [
+            'period_year' => 2026, 'period_month' => 4,
+            'novelty_type_code' => 'LMA',
+        ]);
+
+        $r->assertStatus(422);
+        $r->assertJsonValidationErrors(['start_date', 'end_date']);
+    }
+
+    public function test_ige_requires_start_and_end_date(): void
+    {
+        $affiliate = $this->makeAffiliate('ACTIVO');
+
+        $r = $this->postJson("/api/affiliates/{$affiliate->id}/novelties", [
+            'period_year' => 2026, 'period_month' => 4,
+            'novelty_type_code' => 'IGE',
+        ]);
+
+        $r->assertStatus(422);
+        $r->assertJsonValidationErrors(['start_date', 'end_date']);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

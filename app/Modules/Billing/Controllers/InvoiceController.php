@@ -2,6 +2,7 @@
 
 namespace App\Modules\Billing\Controllers;
 
+use App\Modules\Billing\Enums\CancellationReason;
 use App\Modules\Billing\Models\BillInvoice;
 use App\Modules\Billing\Services\InvoiceCancellationService;
 use App\Modules\Billing\Services\NumberToWordsService;
@@ -9,6 +10,7 @@ use App\Modules\Billing\Services\ReciboCajaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 
 class InvoiceController extends Controller
 {
@@ -85,7 +87,7 @@ class InvoiceController extends Controller
         $invoice = BillInvoice::query()->findOrFail($id);
 
         $data = $request->validate([
-            'cancellation_reason' => 'required|string|max:64',
+            'cancellation_reason' => ['required', 'string', Rule::enum(CancellationReason::class)],
             'cancellation_motive' => 'required|string',
         ]);
 

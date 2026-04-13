@@ -13,12 +13,16 @@ class BankDeposit extends Model
     protected $table = 'tp_bank_deposits';
 
     protected $fillable = [
+        'invoice_id',
+        'affiliate_id',
         'bank_name',
         'reference',
         'amount_pesos',
         'deposit_type',
         'expected_amount_pesos',
         'notes',
+        'concept',
+        'status',
         'created_by',
     ];
 
