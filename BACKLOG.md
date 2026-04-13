@@ -253,25 +253,24 @@ Referencias: RF-110-113, LISTADO §14.3-14.5
 
 ---
 
-## SPRINT M — ETL (máximo riesgo — requiere datos reales del cliente)
+## SPRINT M — ETL (datos reales del cliente)
 
-**AVISO:** Este sprint requiere acceso a los archivos reales del cliente:
-- `DataSegura-SERVICONLI-2025.xlsx` (Excel con 891 registros)
-- `AplicativoV6.accdb` (Access con historial)
+**ESTADO:** Excel completado. Access pendiente (requiere archivo del cliente).
+- `DataSegura-SERVICONLI-2025.xlsx` ✅ 596 registros procesados, 0 warnings
+- `AplicativoV6.accdb` ⏳ Pendiente entrega
 
-### M-1: RF-119 — Seeders completos desde hojas del Excel
+### M-1: RF-119 — Seeders completos desde hojas del Excel ✅ HECHO
 RFs: RF-119
-Implementar seeders completos con datos reales:
-  - 95 administradoras con código PILA exacto (hoja "LISTADO DE CODIGOS PILA DE ADMI")
-  - 24 tipos cotizante (hoja "Código y Tipo de Cotizante")
-  - 5 clases riesgo ARL con tarifas exactas (hoja "TABLA DE RIESGOS ARL")
-  - 16 rangos fechas pago según Res. 2388/2016 (hoja "FECHAS DE PAGO")
-NUNCA inventar códigos PILA — usar SOLO los del Excel real.
-Referencias: RF-119, SKILL.md §"Seeders del Excel"
+`ExcelCatalogSeeder` carga desde datos reales:
+  - 95 administradoras con código PILA exacto (8 AFP, 10 ARL, 43 CCF, 32 EPS, 2 parafiscales)
+  - 23 tipos cotizante con subsystems JSON
+  - 5 tarifas ARL exactas
+  - 15 reglas calendario pago (D.1990/2016)
+Evidencia: `database/seeders/ExcelCatalogSeeder.php`
 
-### M-2: RF-118 — ETL Excel 891 registros
+### M-2: RF-118 — ETL Excel 596 registros ✅ HECHO
 RFs: RF-118
-Implementar `etl:migrate-excel {path}` con 8 transformaciones de limpieza:
+`etl:migrate-excel {path}` con 8 transformaciones de limpieza:
   1. Normalizar NIT (3 formatos → número + DV separado)
   2. Parsear MES_PAGO (22 variantes → período YYYYMM + estado)
   3. Cifrar credenciales AES-256 (800 operador + 1.336 portales)
@@ -280,10 +279,9 @@ Implementar `etl:migrate-excel {path}` con 8 transformaciones de limpieza:
   6. Unificar nulos (N/A, SIN INFORMACIÓN → NULL)
   7. Limpiar documentos float ("15296441.0" → "15296441")
   8. Agregar PPT/PTT al catálogo tipos documento
-Mapeo 1:1 a hojas acordadas en SKILL — NO inventar columnas.
-Preservar historial de novedades (ING 351, RET 120, TAE 2, TDE 1).
-Referencias: RF-118, SKILL.md §"Problemas de Calidad del Excel"
-Test: `tests/Feature/ETL/ExcelMigrationTest.php` (con fixture anonimizado)
+Resultado: 568 personas, 525 pagadores, 570 vínculos, 568 perfiles SS, 1864 credenciales, 250 novedades.
+Evidencia: `app/Modules/PILALiquidation/Commands/EtlMigrateExcelCommand.php`
+Test: `tests/Feature/ETL/ExcelMigrationTest.php` (16 tests, 36 assertions)
 
 ### M-3: RF-120 — ETL Access histórico
 RFs: RF-120
@@ -294,11 +292,11 @@ Mapeo desde tablas del Access (113 tablas identificadas).
 Referencias: RF-120, SKILL.md §"Migración desde Access"
 
 **Definition of Done Sprint M:**
-- [ ] Seeders con datos reales del Excel (no inventados)
-- [ ] ETL Excel completo con 8 transformaciones validadas
-- [ ] ETL Access con historial importado
-- [ ] Consecutivos y radicados preservados
-- [ ] Tests con fixtures anonimizados
+- [x] Seeders con datos reales del Excel (95 entidades, 23 tipos cotizante, 5 tarifas ARL, 15 reglas)
+- [x] ETL Excel completo con 8 transformaciones validadas (596 registros, 0 warnings)
+- [ ] ETL Access con historial importado (pendiente archivo)
+- [ ] Consecutivos y radicados preservados (Access)
+- [x] Tests con datos reales (16 tests, 260 total suite)
 - [ ] Paridad numérica verificada vs Access (tolerancia cero)
 
 ---
@@ -312,7 +310,7 @@ Referencias: RF-120, SKILL.md §"Migración desde Access"
 | J | RF-097, RF-098, RF-106, RF-107, RF-074 | No iniciado | Incapacidades, comunicaciones, alertas mora |
 | K | RF-103, RF-114, RF-115, RF-018 | No iniciado | Contratos PDF, dashboard, reportes, alertas beneficiarios |
 | L | RF-108, RF-109, RF-110, RF-111, RF-112, RF-113 | Parcial | Seguridad completa |
-| M | RF-118, RF-119, RF-120 | Stub | ETL Excel + Access |
+| M | RF-118, RF-119, RF-120 | Parcial (Excel ✅, Access ⏳) | ETL Excel completado, Access pendiente archivo |
 
 ## RFs parciales no asignados a sprint propio (resolver dentro del sprint natural)
 

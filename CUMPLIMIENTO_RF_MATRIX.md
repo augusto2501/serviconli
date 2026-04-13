@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Brechas + catálogos + ETL — RF-044, RF-052, RF-116, RF-118/120 (abril 2026)
+# Actualizado: Sprint M (ETL Excel real) — RF-118, RF-119 completados (abril 2026)
 
 ---
 
@@ -238,9 +238,9 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-118 | En curso | Stub `etl:migrate-excel {path}` en `routes/console.php`. Implementación real: Sprint M (requiere Excel del cliente) |
-| RF-119 | Hecho (parcial) | Seeders: `PaymentCalendarRuleSeeder`, `ContributorTypeSeeder`, festivos CO 2026. Pendiente: 95 administradoras reales, 24 tipos cotizante completos (Sprint M) |
-| RF-120 | En curso | Stub `etl:migrate-access {path}`. Implementación real: Sprint M (requiere Access del cliente) |
+| RF-118 | Hecho | `etl:migrate-excel {path}` procesa 596 registros reales con 8 transformaciones: NIT, mes_pago, cifrado AES-256, teléfonos float, geografía, nulos, documentos. Inserta en core_people, afl_affiliates, afl_payers, afl_affiliate_payer, afl_social_security_profiles, afl_portal_credentials, afl_novelties. 0 warnings. `--dry-run` disponible. 16 tests. |
+| RF-119 | Hecho | `ExcelCatalogSeeder`: 95 administradoras (8 AFP, 10 ARL, 43 CCF, 32 EPS, 2 parafiscales) con código PILA exacto, 23 tipos cotizante con subsystems JSON, 5 tarifas ARL, 15 reglas calendario pago — todo desde Excel real del cliente |
+| RF-120 | En curso | Stub `etl:migrate-access {path}`. Implementación real cuando el cliente entregue AplicativoV6.accdb |
 
 ---
 
