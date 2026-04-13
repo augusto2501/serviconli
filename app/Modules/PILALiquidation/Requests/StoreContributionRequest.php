@@ -59,6 +59,12 @@ final class StoreContributionRequest extends FormRequest
             'bank_deposit_type' => ['nullable', 'string', 'in:LOCAL,NACIONAL'],
 
             'notes' => ['nullable', 'string', 'max:1000'],
+
+            // RF-052: confirmación explícita si período adelantado
+            'confirm_advance_period' => ['nullable', 'boolean'],
+
+            // RF-044: valor legacy para comparación en transición
+            'legacy_total_pesos' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

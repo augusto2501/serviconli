@@ -18,6 +18,8 @@ use App\Modules\Communications\Listeners\SendMoraBeneficiaryWhatsApp;
 use App\Modules\Communications\Models\CommNotification;
 use App\Modules\Disabilities\Models\AffiliateDisability;
 use App\Modules\Employers\Models\Employer;
+use App\Modules\PILALiquidation\Commands\EtlMigrateAccessCommand;
+use App\Modules\PILALiquidation\Commands\EtlMigrateExcelCommand;
 use App\Modules\PILALiquidation\Commands\GenerarPlanillaCommand;
 use App\Modules\PILALiquidation\Events\BatchConfirmed;
 use App\Modules\PILALiquidation\Events\ContributionSaved;
@@ -67,6 +69,8 @@ class AppServiceProvider extends ServiceProvider
             MoraDetectCommand::class,
             BeneficiaryAlertCommand::class,
             FilesPurgeCommand::class,
+            EtlMigrateExcelCommand::class,
+            EtlMigrateAccessCommand::class,
         ]);
 
         $this->app->singleton(PILACalculationService::class, function ($app) {

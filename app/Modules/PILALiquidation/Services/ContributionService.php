@@ -9,6 +9,7 @@ use App\Modules\PILALiquidation\Models\PilaLiquidation;
 use App\Modules\PILALiquidation\Models\PilaLiquidationLine;
 use App\Modules\RegulatoryEngine\DTOs\CalculationContext;
 use App\Modules\RegulatoryEngine\DTOs\CalculationResultDTO;
+use App\Modules\RegulatoryEngine\Services\LegacyComparisonService;
 use App\Modules\RegulatoryEngine\Services\PeriodDeterminationService;
 use App\Modules\RegulatoryEngine\Services\PILACalculationService;
 use App\Modules\RegulatoryEngine\Strategies\StrategyResolver;
@@ -34,6 +35,7 @@ final class ContributionService
         private readonly PILACalculationService $calculationService,
         private readonly PeriodDeterminationService $periodService,
         private readonly StrategyResolver $strategyResolver,
+        private readonly LegacyComparisonService $legacyService,
     ) {}
 
     /**
@@ -96,7 +98,7 @@ final class ContributionService
 
         $liquidation->load('lines');
 
-        $alerts = $this->collectAlerts($data);
+        $alerts = $this->collectAlerts($data, $result->totalSocialSecurityPesos);
 
         ContributionSaved::dispatch(
             $affiliate,
@@ -169,6 +171,14 @@ final class ContributionService
                 'Para tipo 51 (tiempo parcial), los días válidos son: 7, 14, 21 o 30. [RF-058]'
             );
         }
+
+        // RF-052: período adelantado requiere confirmación explícita
+        $periodData = $this->periodService->determine($affiliate, $contributorType);
+        if ($periodData['is_advance_period'] && empty($data['confirm_advance_period'])) {
+            throw new InvalidArgumentException(
+                'Está liquidando un período adelantado. Envíe confirm_advance_period=true para confirmar. [RF-052]'
+            );
+        }
     }
 
     private function buildContext(array $data): CalculationContext
@@ -196,8 +206,8 @@ final class ContributionService
         );
     }
 
-    /** RN-28: Alertas para retiro ARL tipo X o R. */
-    private function collectAlerts(array $data): array
+    /** RN-28 + RF-044: alertas de retiro ARL y transición legacy. */
+    private function collectAlerts(array $data, int $calculatedTotal): array
     {
         $alerts = [];
 
@@ -207,6 +217,21 @@ final class ContributionService
 
             if ($code === 'RET' && in_array($scope, ['TOTAL', 'ARL_ONLY'], true)) {
                 $alerts[] = 'Recuerde retirar al afiliado en la plataforma de la ARL. [RN-28, RF-064]';
+            }
+        }
+
+        // RF-044: comparar con referencia legacy si existe
+        $legacyRef = $data['legacy_total_pesos']
+            ?? $this->legacyService->findLegacyReference(
+                (int) $data['affiliate_id'],
+                (int) $data['period_year'],
+                (int) $data['period_month'],
+            );
+
+        if ($legacyRef !== null) {
+            $comparison = $this->legacyService->compare($calculatedTotal, (int) $legacyRef);
+            if ($comparison !== null) {
+                $alerts[] = $comparison['message'];
             }
         }
 

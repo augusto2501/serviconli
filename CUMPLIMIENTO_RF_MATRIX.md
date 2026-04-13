@@ -1,7 +1,7 @@
 # Matriz de Cumplimiento RF × Estado — Serviconli
 # Referencia: REQUISITOS_FUNCIONALES_SERVICONLI.md
 # Estados: No iniciado | En curso | Hecho (parcial) | Hecho | N/A
-# Actualizado: Bloque 1 Facturación — RF-075, RF-078, RF-079, RF-084–RF-087 (abril 2026)
+# Actualizado: Brechas + catálogos + ETL — RF-044, RF-052, RF-116, RF-118/120 (abril 2026)
 
 ---
 
@@ -73,7 +73,7 @@
 | RF-041 | Hecho | Todos los montos `INT UNSIGNED` en PHP y BD; tarifas `DECIMAL(8,6)` |
 | RF-042 | Hecho | 5 Strategies: `DependienteGeneral`, `IndependienteGeneral`, `TiempoParcialSubsidiado`, `BeneficiarioUPC`, `ContratistaPrestacionServicios` via `StrategyResolver` |
 | RF-043 | Hecho | `RoundingEngine`: `roundIBC`, `roundLegacy`, `roundPILA`, `adjustBatchRounding` |
-| RF-044 | Hecho (parcial) | `roundPILA()` existe. Pendiente: alerta activa cuando diferencia legacy vs PILA > 1% en período de transición |
+| RF-044 | Hecho | `LegacyComparisonService::compare()` con tolerancia 1%. `pay_legacy_references` para datos ETL. Integrado en `ContributionService::collectAlerts()`. Parámetro `legacy_total_pesos` en request |
 | RF-045 | Hecho | `cfg_regulatory_parameters` con `valid_from`/`valid_until`, categoría, clave, tipo dato, base legal |
 | RF-046 | Hecho (parcial) | Tabla + seeders completos. Sin UI admin CRUD para usuarios no técnicos |
 | RF-047 | Hecho | `PaymentCalendarService`: 16 rangos Res. 2388/2016 desde `cfg_payment_calendar_rules` |
@@ -81,7 +81,7 @@
 | RF-049 | Hecho | `ColombianHolidayChecker`: sábados, domingos y festivos CO desde `cfg_colombian_holidays` |
 | RF-050 | Hecho | `cfg_payment_deadline_overrides`: overrides manuales por período específico |
 | RF-051 | Hecho | `PeriodDeterminationService`: sin pagos → mes siguiente + días proporcionales; con pagos → siguiente al último pagado |
-| RF-052 | Hecho (parcial) | Detección período adelantado en el servicio. Pendiente: confirmación explícita del usuario antes de proceder |
+| RF-052 | Hecho | `confirm_advance_period=true` requerido en `StoreContributionRequest`. `ContributionService::validateBusinessRules()` bloquea si `is_advance_period` sin confirmación |
 | RF-053 | Hecho | `QuotationService` (Sprint G): mismas fórmulas del motor real, almacena en `billing_quotations` |
 | RF-054 | Hecho | `QuotationService::generatePdf`, vista `resources/views/pdf/quotation.blade.php`, `bill_quotations.pdf_path`, `barryvdh/laravel-dompdf` |
 
@@ -229,7 +229,7 @@
 
 | RF | Estado | Evidencia / Notas |
 |----|--------|-------------------|
-| RF-116 | Hecho (parcial) | 25+ catálogos con tablas + seeders completos. Sin UI admin CRUD para usuarios (Sprint L) |
+| RF-116 | Hecho | `CatalogAdminController` — API CRUD genérica para 27 tablas `cfg_*` con whitelist. Rutas: GET/POST/PUT/DELETE `/api/admin/catalogs/{table}`. Búsqueda por nombre, paginación configurable |
 | RF-117 | Hecho | `ConsecutiveService`: RC / SC / RAD / CE con reinicio anual, lock concurrencia, parametrizable desde `cfg_consecutive_formats` |
 
 ---
