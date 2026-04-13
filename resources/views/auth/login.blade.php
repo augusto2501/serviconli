@@ -1,4 +1,4 @@
-@extends('layouts.serviconli')
+@extends('layouts.auth')
 
 @section('page', 'login')
 
