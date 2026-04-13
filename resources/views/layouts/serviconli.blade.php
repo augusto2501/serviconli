@@ -11,214 +11,274 @@
     <style>
         body.svc-app { font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; }
         .font-serif-svc { font-family: 'Fraunces', Georgia, serif; }
-        /* Ocultar marcador nativo de <summary> en menús desplegables */
         .svc-details-nav > summary { list-style: none; }
         .svc-details-nav > summary::-webkit-details-marker { display: none; }
+        /* Sidebar colapsada: ocultar etiquetas, mostrar solo iconos */
+        .svc-sidebar-collapsed .svc-label { display: none !important; }
+        .svc-sidebar-collapsed .svc-sidebar-logo-long { display: none !important; }
+        .svc-sidebar-collapsed .svc-sidebar-logo-short { display: inline !important; }
+        .svc-sidebar { transition: width 250ms ease; }
     </style>
     @php
-        $svcNavQuick = [
-            ['label' => 'Dashboard', 'url' => url('/dashboard'), 'hint' => 'Indicadores y reportes'],
-        ];
-        $svcNavGroups = [
+        $svcCurrentPage = request()->path();
+        $svcNavItems = [
             [
-                'label' => 'Afiliados',
-                'items' => [
-                    ['label' => 'Mis afiliados', 'url' => url('/mis-afiliados')],
-                    ['label' => 'Incapacidades', 'url' => url('/incapacidades')],
+                'label'  => 'Dashboard',
+                'url'    => url('/dashboard'),
+                'icon'   => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6m-6 0v6m-4-6H5m4 6H5"/>',
+                'active' => $svcCurrentPage === 'dashboard',
+            ],
+            [
+                'section' => 'Afiliados',
+                'items'   => [
+                    ['label' => 'Mis afiliados',   'url' => url('/mis-afiliados'),  'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6 5.87a4 4 0 10-8 0m12-8a4 4 0 10-8 0"/>'],
+                    ['label' => 'Incapacidades',   'url' => url('/incapacidades'),  'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'],
                 ],
             ],
             [
-                'label' => 'PILA',
-                'items' => [
-                    ['label' => 'Liquidación por lotes', 'url' => url('/liquidacion-lotes')],
-                    ['label' => 'Archivo planilla PILA', 'url' => url('/generar-pila')],
+                'section' => 'PILA',
+                'items'   => [
+                    ['label' => 'Liquidación lotes', 'url' => url('/liquidacion-lotes'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>'],
+                    ['label' => 'Archivo PILA',      'url' => url('/generar-pila'),       'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>'],
                 ],
             ],
             [
-                'label' => 'Facturación',
-                'items' => [
-                    ['label' => 'Cartera y recibos', 'url' => url('/cartera')],
-                    ['label' => 'Cuadre de caja', 'url' => url('/cuadre-caja')],
+                'section' => 'Facturación',
+                'items'   => [
+                    ['label' => 'Cartera y recibos', 'url' => url('/cartera'),      'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/>'],
+                    ['label' => 'Cuadre de caja',    'url' => url('/cuadre-caja'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>'],
                 ],
             ],
             [
-                'label' => 'Comercial',
-                'items' => [
-                    ['label' => 'Asesores', 'url' => url('/asesores')],
-                    ['label' => 'Comisiones', 'url' => url('/comisiones')],
-                    ['label' => 'Terceros y consignaciones', 'url' => url('/terceros')],
+                'section' => 'Comercial',
+                'items'   => [
+                    ['label' => 'Asesores',      'url' => url('/asesores'),    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>'],
+                    ['label' => 'Comisiones',    'url' => url('/comisiones'),  'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'],
+                    ['label' => 'Terceros',      'url' => url('/terceros'),    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>'],
                 ],
             ],
-        ];
-        $svcNavDocs = [
-            ['label' => 'Contratos y certificados', 'url' => url('/documentos'), 'hint' => 'PDF / RF-103'],
+            [
+                'section' => 'Documentos',
+                'items'   => [
+                    ['label' => 'Contratos PDF', 'url' => url('/documentos'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'],
+                ],
+            ],
         ];
     @endphp
 </head>
-<body class="svc-app min-h-screen bg-[#f4f1ea] text-stone-900 antialiased" data-page="@yield('page')">
-    <header class="sticky top-0 z-40 border-b border-stone-200/90 bg-white/95 shadow-sm backdrop-blur-md">
-        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:py-3.5">
-            <div class="flex min-w-0 items-center gap-3">
-                <a href="{{ url('/') }}" class="font-serif-svc shrink-0 text-lg font-bold tracking-tight text-stone-900 no-underline sm:text-xl">
-                    {{ config('app.name') }}
-                </a>
-                <span class="hidden text-xs font-medium uppercase tracking-wider text-stone-400 sm:inline">Operaciones</span>
-            </div>
+<body class="svc-app bg-[#f0ece3] text-stone-900 antialiased" data-page="@yield('page')">
+<div class="flex min-h-screen">
 
-            {{-- Escritorio: menú por grupos con hover --}}
-            <nav class="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Principal">
-                @foreach ($svcNavQuick as $item)
+    {{-- ============================================================
+         SIDEBAR ESCRITORIO
+    ============================================================= --}}
+    <aside
+        id="svc-sidebar"
+        class="svc-sidebar hidden w-60 flex-col border-r border-stone-200/90 bg-white lg:flex"
+        style="min-height:100vh"
+    >
+        {{-- Logo --}}
+        <div class="flex h-14 shrink-0 items-center gap-3 border-b border-stone-200/80 px-5">
+            <a href="{{ url('/') }}" class="font-serif-svc svc-sidebar-logo-long truncate text-base font-bold leading-tight text-stone-900 no-underline">
+                {{ config('app.name') }}
+            </a>
+            <a href="{{ url('/') }}" class="svc-sidebar-logo-short hidden font-serif-svc text-lg font-bold text-teal-800 no-underline">S</a>
+        </div>
+
+        {{-- Navegación --}}
+        <nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Sidebar">
+            @foreach ($svcNavItems as $group)
+                @if (isset($group['url']))
+                    {{-- Enlace directo (Dashboard) --}}
                     <a
-                        href="{{ $item['url'] }}"
-                        class="shrink-0 rounded-lg bg-teal-800 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-900"
+                        href="{{ $group['url'] }}"
+                        class="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition
+                            {{ $group['active'] ?? false
+                                ? 'bg-teal-800 text-white shadow-sm'
+                                : 'text-stone-700 hover:bg-teal-50 hover:text-teal-950' }}"
                     >
-                        {{ $item['label'] }}
+                        <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">{!! $group['icon'] !!}</svg>
+                        <span class="svc-label">{{ $group['label'] }}</span>
                     </a>
-                @endforeach
-
-                @foreach ($svcNavGroups as $group)
-                    <div class="relative group/nav">
-                        <button
-                            type="button"
-                            class="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-teal-900"
-                            aria-expanded="false"
-                            aria-haspopup="true"
+                @else
+                    {{-- Sección con sub-ítems --}}
+                    <p class="svc-label mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-stone-400 first:mt-0">
+                        {{ $group['section'] }}
+                    </p>
+                    @foreach ($group['items'] as $item)
+                        @php
+                            $isActive = rtrim(request()->getRequestUri(), '/') === rtrim(parse_url($item['url'], PHP_URL_PATH), '/');
+                        @endphp
+                        <a
+                            href="{{ $item['url'] }}"
+                            class="mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition
+                                {{ $isActive
+                                    ? 'bg-teal-50 font-semibold text-teal-900'
+                                    : 'font-medium text-stone-700 hover:bg-stone-100 hover:text-teal-900' }}"
                         >
-                            {{ $group['label'] }}
-                            <svg class="h-4 w-4 text-stone-500 transition group-hover/nav:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div
-                            class="invisible absolute left-0 top-full z-50 min-w-[15.5rem] origin-top scale-95 pt-2 opacity-0 transition-all duration-150 group-hover/nav:visible group-hover/nav:scale-100 group-hover/nav:opacity-100"
-                            role="menu"
-                        >
-                            {{-- pt-2 actúa como puente para mantener el hover al bajar al submenú --}}
-                            <div class="rounded-xl border border-stone-200/90 bg-white py-2 shadow-xl ring-1 ring-stone-900/5">
-                                @foreach ($group['items'] as $sub)
-                                    <a
-                                        href="{{ $sub['url'] }}"
-                                        class="block px-4 py-2.5 text-sm text-stone-700 transition hover:bg-teal-50 hover:text-teal-950"
-                                        role="menuitem"
-                                    >
-                                        {{ $sub['label'] }}
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+                            <svg class="h-4.5 h-[1.125rem] w-[1.125rem] shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">{!! $item['icon'] !!}</svg>
+                            <span class="svc-label">{{ $item['label'] }}</span>
+                        </a>
+                    @endforeach
+                @endif
+            @endforeach
+        </nav>
 
-                @foreach ($svcNavDocs as $item)
-                    <a
-                        href="{{ $item['url'] }}"
-                        class="shrink-0 rounded-lg border border-stone-300 bg-white px-3.5 py-2 text-sm font-medium text-stone-800 transition hover:border-teal-700 hover:bg-teal-50/80 hover:text-teal-900"
-                        title="{{ $item['hint'] ?? '' }}"
-                    >
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            </nav>
+        {{-- Footer del sidebar: sesión --}}
+        <div class="shrink-0 border-t border-stone-200/80 px-3 py-3">
+            <a id="svc-nav-login" href="{{ route('login') }}" class="mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-teal-900">
+                <svg class="h-[1.125rem] w-[1.125rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                <span class="svc-label">Iniciar sesión</span>
+            </a>
+            <button id="svc-nav-logout" type="button" class="hidden w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-stone-600 transition hover:bg-red-50 hover:text-red-800">
+                <svg class="h-[1.125rem] w-[1.125rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                <span class="svc-label">Cerrar sesión</span>
+            </button>
+        </div>
+    </aside>
 
-            <div class="flex shrink-0 items-center gap-2">
-                <a
-                    id="svc-nav-login"
-                    href="{{ route('login') }}"
-                    class="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-teal-900"
-                >
+    {{-- ============================================================
+         COLUMNA PRINCIPAL
+    ============================================================= --}}
+    <div class="flex min-w-0 flex-1 flex-col">
+
+        {{-- Topbar (solo en móvil y como barra de utilidades en escritorio) --}}
+        <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-stone-200/80 bg-white/95 px-4 backdrop-blur-sm">
+            {{-- Hamburguesa (solo móvil) --}}
+            <button
+                id="svc-menu-toggle"
+                type="button"
+                class="inline-flex items-center justify-center rounded-lg p-2 text-stone-700 transition hover:bg-stone-100 lg:hidden"
+                aria-controls="svc-drawer"
+                aria-expanded="false"
+                aria-label="Abrir menú"
+            >
+                <svg id="svc-icon-menu" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <svg id="svc-icon-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            {{-- Título de la página actual --}}
+            <span class="font-serif-svc hidden text-base font-semibold text-stone-800 lg:inline">@yield('title', config('app.name'))</span>
+            <span class="font-serif-svc text-sm font-semibold text-stone-800 lg:hidden">{{ config('app.name') }}</span>
+
+            <div class="flex items-center gap-2">
+                <a id="svc-nav-login-top" href="{{ route('login') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-100 lg:hidden">
                     Iniciar sesión
                 </a>
-                <button
-                    id="svc-nav-logout"
-                    type="button"
-                    class="hidden rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-teal-900"
-                >
-                    Cerrar sesión
-                </button>
-                <button
-                    id="svc-menu-toggle"
-                    type="button"
-                    class="inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white p-2 text-stone-800 shadow-sm lg:hidden"
-                    aria-controls="svc-mobile-menu"
-                    aria-expanded="false"
-                    aria-label="Abrir menú"
-                >
-                    <svg id="svc-icon-menu" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    <svg id="svc-icon-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                <button id="svc-nav-logout-top" type="button" class="hidden rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-100 lg:hidden">
+                    Salir
                 </button>
             </div>
-        </div>
+        </header>
 
-        {{-- Móvil / tablet: panel acordeón --}}
-        <div id="svc-mobile-menu" class="hidden border-t border-stone-200 bg-[#faf8f4] lg:hidden">
-            <nav class="mx-auto max-w-7xl space-y-1 px-4 py-4" aria-label="Principal móvil">
-                @foreach ($svcNavQuick as $item)
-                    <a href="{{ $item['url'] }}" class="block rounded-xl bg-teal-800 px-4 py-3 text-center text-sm font-semibold text-white">
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-
-                @foreach ($svcNavGroups as $group)
-                    <details class="svc-details-nav group rounded-xl border border-stone-200 bg-white open:shadow-sm">
-                        <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold text-stone-800">
+        {{-- Drawer móvil (overlay) --}}
+        <div id="svc-overlay" class="fixed inset-0 z-40 bg-stone-900/50 backdrop-blur-sm lg:hidden hidden"></div>
+        <aside
+            id="svc-drawer"
+            class="fixed inset-y-0 left-0 z-50 w-72 -translate-x-full overflow-y-auto border-r border-stone-200 bg-white transition-transform duration-250 lg:hidden"
+        >
+            <div class="flex h-14 items-center justify-between border-b border-stone-200/80 px-5">
+                <a href="{{ url('/') }}" class="font-serif-svc truncate text-base font-bold text-stone-900 no-underline">{{ config('app.name') }}</a>
+                <button id="svc-drawer-close" type="button" class="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100" aria-label="Cerrar menú">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <nav class="px-3 py-4" aria-label="Drawer">
+                @foreach ($svcNavItems as $group)
+                    @if (isset($group['url']))
+                        <a href="{{ $group['url'] }}" class="mb-1 flex items-center gap-3 rounded-xl bg-teal-800 px-3 py-2.5 text-sm font-semibold text-white">
+                            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">{!! $group['icon'] !!}</svg>
                             {{ $group['label'] }}
-                            <svg class="h-5 w-5 text-stone-500 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </summary>
-                        <div class="border-t border-stone-100 pb-2 pt-1">
-                            @foreach ($group['items'] as $sub)
-                                <a href="{{ $sub['url'] }}" class="block px-4 py-2.5 text-sm text-stone-700 hover:bg-teal-50 hover:text-teal-950">
-                                    {{ $sub['label'] }}
-                                </a>
-                            @endforeach
-                        </div>
-                    </details>
+                        </a>
+                    @else
+                        <p class="mb-1 mt-5 px-3 text-[10px] font-bold uppercase tracking-widest text-stone-400 first:mt-0">{{ $group['section'] }}</p>
+                        @foreach ($group['items'] as $item)
+                            <a href="{{ $item['url'] }}" class="mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 hover:bg-teal-50 hover:text-teal-950">
+                                <svg class="h-[1.125rem] w-[1.125rem] shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">{!! $item['icon'] !!}</svg>
+                                {{ $item['label'] }}
+                            </a>
+                        @endforeach
+                    @endif
                 @endforeach
-
-                @foreach ($svcNavDocs as $item)
-                    <a href="{{ $item['url'] }}" class="block rounded-xl border border-stone-300 bg-white px-4 py-3 text-center text-sm font-medium text-stone-800">
-                        {{ $item['label'] }}
+                <div class="mt-6 border-t border-stone-200 pt-4">
+                    <a id="svc-nav-login-drawer" href="{{ route('login') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-600 hover:bg-stone-100">
+                        <svg class="h-[1.125rem] w-[1.125rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
+                        Iniciar sesión
                     </a>
-                @endforeach
+                    <button id="svc-nav-logout-drawer" type="button" class="hidden w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-600 hover:bg-red-50 hover:text-red-800">
+                        <svg class="h-[1.125rem] w-[1.125rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
+                        Cerrar sesión
+                    </button>
+                </div>
             </nav>
-        </div>
-    </header>
-    <script>
-        (function () {
-            var t = sessionStorage.getItem('serviconli_api_token');
-            var login = document.getElementById('svc-nav-login');
-            var logout = document.getElementById('svc-nav-logout');
-            if (login && logout) {
-                if (t) {
-                    login.classList.add('hidden');
-                    logout.classList.remove('hidden');
-                }
-                logout.addEventListener('click', function () {
-                    sessionStorage.removeItem('serviconli_api_token');
-                    fetch('/api/logout', { method: 'POST', headers: { Accept: 'application/json', Authorization: 'Bearer ' + t } }).catch(function () {});
-                    window.location.href = '/login';
-                });
-            }
+        </aside>
 
-            var toggle = document.getElementById('svc-menu-toggle');
-            var panel = document.getElementById('svc-mobile-menu');
-            var iconMenu = document.getElementById('svc-icon-menu');
-            var iconClose = document.getElementById('svc-icon-close');
-            if (toggle && panel) {
-                toggle.addEventListener('click', function () {
-                    panel.classList.toggle('hidden');
-                    var open = !panel.classList.contains('hidden');
-                    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-                    toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
-                    if (iconMenu && iconClose) {
-                        iconMenu.classList.toggle('hidden', open);
-                        iconClose.classList.toggle('hidden', !open);
-                    }
-                });
-            }
-        })();
-    </script>
-    <main class="mx-auto max-w-6xl px-4 py-8">
-        @yield('content')
-    </main>
+        {{-- Contenido principal --}}
+        <main class="flex-1 overflow-auto px-4 py-6 sm:px-6 sm:py-8">
+            <div class="mx-auto max-w-5xl">
+                @yield('content')
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+(function () {
+    var t = sessionStorage.getItem('serviconli_api_token');
+
+    function setAuth(show) {
+        ['svc-nav-login','svc-nav-login-top','svc-nav-login-drawer'].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', show);
+        });
+        ['svc-nav-logout','svc-nav-logout-top','svc-nav-logout-drawer'].forEach(function(id){
+            var el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', !show);
+        });
+    }
+
+    function doLogout() {
+        sessionStorage.removeItem('serviconli_api_token');
+        fetch('/api/logout', { method: 'POST', headers: { Accept: 'application/json', Authorization: 'Bearer ' + t } }).catch(function(){});
+        window.location.href = '/login';
+    }
+
+    if (t) setAuth(true);
+
+    ['svc-nav-logout','svc-nav-logout-top','svc-nav-logout-drawer'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('click', doLogout);
+    });
+
+    /* Drawer móvil */
+    var overlay = document.getElementById('svc-overlay');
+    var drawer  = document.getElementById('svc-drawer');
+    var toggle  = document.getElementById('svc-menu-toggle');
+    var iconMenu  = document.getElementById('svc-icon-menu');
+    var iconClose = document.getElementById('svc-icon-close');
+    var closeBtn  = document.getElementById('svc-drawer-close');
+
+    function openDrawer() {
+        drawer.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+        if (iconMenu)  iconMenu.classList.add('hidden');
+        if (iconClose) iconClose.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+        drawer.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+        if (iconMenu)  iconMenu.classList.remove('hidden');
+        if (iconClose) iconClose.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    if (toggle)   toggle.addEventListener('click', openDrawer);
+    if (overlay)  overlay.addEventListener('click', closeDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+})();
+</script>
 </body>
 </html>
